@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.API", "PortfolioManager.API\PortfolioManager.API.csproj", "{42F0F340-31F7-4E60-B969-2CDBE097B8DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.DAL", "PortfolioManager.DAL\PortfolioManager.DAL.csproj", "{62669ED1-18C5-48B1-A87C-87A9F9869D88}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{42F0F340-31F7-4E60-B969-2CDBE097B8DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42F0F340-31F7-4E60-B969-2CDBE097B8DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42F0F340-31F7-4E60-B969-2CDBE097B8DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
