@@ -20,4 +20,9 @@
       </PackageReference>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Infrastructure\DI\Abstract\" />
+      <Folder Include="Infrastructure\DI\Implementation\" />
+    </ItemGroup>
+
 </Project>

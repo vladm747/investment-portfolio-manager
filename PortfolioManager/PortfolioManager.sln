@@ -4,6 +4,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.API", "Por
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.DAL", "PortfolioManager.DAL\PortfolioManager.DAL.csproj", "{62669ED1-18C5-48B1-A87C-87A9F9869D88}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.BLL", "PortfolioManager.BLL\PortfolioManager.BLL.csproj", "{7CA347C8-2144-447D-AA4B-A7A8F8F72155}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.Common", "PortfolioManager.Common\PortfolioManager.Common.csproj", "{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,13 @@ Global
 		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{62669ED1-18C5-48B1-A87C-87A9F9869D88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CA347C8-2144-447D-AA4B-A7A8F8F72155}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CA347C8-2144-447D-AA4B-A7A8F8F72155}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CA347C8-2144-447D-AA4B-A7A8F8F72155}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CA347C8-2144-447D-AA4B-A7A8F8F72155}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
