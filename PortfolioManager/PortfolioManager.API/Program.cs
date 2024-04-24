@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -31,30 +32,10 @@ public class Program
         builder.Services.AddControllers();
 
         #region Auth
-
-         builder.Services.AddAuthentication()
-            .AddGoogle(options =>
-            {
-                options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-                options.ClientSecret =builder.Configuration["Authentication:Google:ClientSecret"];
-            });
-
-        builder.Services.AddIdentity<User, IdentityRole>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-            })
-            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
-            .AddDefaultTokenProviders();
-        builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
-            opt.TokenLifespan = TimeSpan.FromHours(1));
-        
         builder.Services.Configure<JwtSettings>(
             builder.Configuration.GetSection("Jwt"));
         var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
-
+        
         builder.Services
             .AddAuthorization(options => 
                 options.AddPolicy("ElevatedRights", policy =>
@@ -63,10 +44,14 @@ public class Program
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+                options.DefaultSignInScheme = GoogleDefaults.AuthenticationScheme;
             })
-            .AddCookie(options => {
-                options.LoginPath = "/Auth/sign-in/";
+            .AddCookie()
+            .AddGoogle(options =>
+            {
+                options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
             })
             .AddJwtBearer(options =>
             {
@@ -79,6 +64,23 @@ public class Program
                     ClockSkew = TimeSpan.Zero
                 };
             });
+        
+        builder.Services.AddIdentity<User, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 6;
+            })
+            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
+            .AddDefaultTokenProviders();
+
+        builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
+            opt.TokenLifespan = TimeSpan.FromHours(1));
+        
+    
+
+      
 
         #endregion
         
