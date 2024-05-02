@@ -21,8 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Infrastructure\DI\Abstract\" />
-      <Folder Include="Infrastructure\DI\Implementation\" />
+      <ProjectReference Include="..\PortfolioManager.Common\PortfolioManager.Common.csproj" />
     </ItemGroup>
 
 </Project>
