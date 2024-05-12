@@ -24,4 +24,8 @@
       <ProjectReference Include="..\PortfolioManager.Common\PortfolioManager.Common.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Context\Scaffolded\" />
+    </ItemGroup>
+
 </Project>

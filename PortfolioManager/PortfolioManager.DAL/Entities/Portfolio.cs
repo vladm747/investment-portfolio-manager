@@ -7,10 +7,11 @@ public class Portfolio
 {
     [Key]
     public int Id { get; set; }
+    [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
-    public decimal TotalEntryValue {get; set; }
-    public decimal TotalCurrentValue {get; set; }
+    public decimal TotalEntryPrice {get; set; }
+    public decimal TotalCurrenPrice {get; set; }
     public decimal TotalGain {get; set; } //TotalCurrentValue - TotalEntryValue
     
     public string UserId { get; set; } = string.Empty;

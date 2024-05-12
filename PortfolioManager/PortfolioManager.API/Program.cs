@@ -16,6 +16,8 @@ using PortfolioManager.DAL.Context;
 using PortfolioManager.DAL.Entities.Auth;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract;
 using PortfolioManager.DAL.Infrastructure.DI.Implementation;
+using YahooFinance.Client.Interfaces;
+using YahooFinance.Client.Services;
 
 
 public class Program
@@ -30,6 +32,7 @@ public class Program
         builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
         
         builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+        builder.Services.AddScoped<IStockSymbolRepository, StockSymbolRepository>();
         builder.Services.AddScoped<IStockRepository, StockRepository>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IPortfolioService, PortfolioService>();
@@ -37,6 +40,7 @@ public class Program
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
+        builder.Services.AddScoped<IYahooFinanceService, YahooFinanceService>();
 
         builder.Services.AddControllers();
 
@@ -137,23 +141,7 @@ public class Program
 
         app.UseHttpsRedirection();
         
-        await using var scope = app.Services.CreateAsyncScope();
-
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        await CreateRolesAsync(roleManager);
-        
-        
         await app.RunAsync();
-    }
-
-    // це хуйня лучше делать через дата сидинг и миграции типа Context.MigrateAsync()
-    private static async Task CreateRolesAsync(RoleManager<IdentityRole> roleManager)
-    {
-        if (!await roleManager.RoleExistsAsync("investor"))
-            await roleManager.CreateAsync(new IdentityRole("investor"));
-
-        if (!await roleManager.RoleExistsAsync("admin"))
-            await roleManager.CreateAsync(new IdentityRole("admin"));
     }
 }
 

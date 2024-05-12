@@ -9,6 +9,7 @@
     <ItemGroup>
       <ProjectReference Include="..\PortfolioManager.Common\PortfolioManager.Common.csproj" />
       <ProjectReference Include="..\PortfolioManager.DAL\PortfolioManager.DAL.csproj" />
+      <ProjectReference Include="..\YahooFinance.Client\YahooFinance.Client.csproj" />
     </ItemGroup>
 
     <ItemGroup>

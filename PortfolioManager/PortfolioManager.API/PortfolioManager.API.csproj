@@ -35,6 +35,7 @@
     <ItemGroup>
       <ProjectReference Include="..\PortfolioManager.BLL\PortfolioManager.BLL.csproj" />
       <ProjectReference Include="..\PortfolioManager.DAL\PortfolioManager.DAL.csproj" />
+      <ProjectReference Include="..\YahooFinance.Client\YahooFinance.Client.csproj" />
     </ItemGroup>
 
 </Project>
