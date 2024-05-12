@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using PortfolioManager.DAL.Entities;
@@ -21,7 +22,31 @@ public class PortfolioManagerDbContext: IdentityDbContext<User>
     public DbSet<User> Users { get; set; }
     public DbSet<Portfolio> Portfolios { get; set; }
     public DbSet<Stock> Stocks { get; set; }
+    public virtual DbSet<StockSymbol> StockSymbols { get; set; }
     public DbSet<StockDataHistory> StockDataHistory { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<IdentityRole>().HasData(new[]
+        {
+            new IdentityRole("investor")
+            {
+                NormalizedName = "INVESTOR"
+            },
+            new IdentityRole("admin")
+            {
+                NormalizedName = "ADMIN"
+            }
+        });
+        
+        modelBuilder.Entity<Portfolio>()
+            .HasMany(p => p.Stocks)
+            .WithOne(s => s.Portfolio)
+            .OnDelete(DeleteBehavior.Cascade);
+     
+        base.OnModelCreating(modelBuilder);
+    }
+    
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

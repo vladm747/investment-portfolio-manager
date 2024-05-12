@@ -14,8 +14,20 @@ public class PortfolioController : ControllerBase
     }
     
     [HttpGet]
-    public IActionResult GetAllAsync()
+    public async Task<IActionResult> GetAllAsync()
     {
-        return Ok("It works!");
+        var portfolios = await _portfolioService.GetAllAsync();
+        
+        return Ok(portfolios);
+    }
+    
+    public async Task<IActionResult> GetAsync(int id)
+    {
+        var portfolio = await _portfolioService.GetAsync(id);
+        
+        if(portfolio == null)
+            return NotFound();
+        
+        return Ok(portfolio);
     }
 }

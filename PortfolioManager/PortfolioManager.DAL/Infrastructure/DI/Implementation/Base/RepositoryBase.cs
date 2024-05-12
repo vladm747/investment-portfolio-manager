@@ -31,7 +31,7 @@ public abstract class RepositoryBase<TKey, TEntity> : IRepositoryBase<TKey, TEnt
         return entityEntry.Entity;
     }
 
-    public async Task<int> UpdateAsync(TEntity item)
+    public async Task<int>  UpdateAsync(TEntity item)
     {
         Context.Entry(item).State = EntityState.Modified;
         var result = await Context.SaveChangesAsync();

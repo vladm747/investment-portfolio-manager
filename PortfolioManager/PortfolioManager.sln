@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.BLL", "Por
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.Common", "PortfolioManager.Common\PortfolioManager.Common.csproj", "{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YahooFinance.Client", "YahooFinance.Client\YahooFinance.Client.csproj", "{4075DD47-2340-483C-8832-B62274DDE599}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4075DD47-2340-483C-8832-B62274DDE599}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4075DD47-2340-483C-8832-B62274DDE599}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4075DD47-2340-483C-8832-B62274DDE599}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4075DD47-2340-483C-8832-B62274DDE599}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
