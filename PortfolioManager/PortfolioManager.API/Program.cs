@@ -41,7 +41,18 @@ public class Program
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
         builder.Services.AddScoped<IYahooFinanceService, YahooFinanceService>();
-
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(name: "AllowAllOrigins",
+                builder =>
+                {
+                    builder.WithOrigins("https://localhost:44344");
+                    builder.AllowAnyHeader();
+                    builder.AllowAnyMethod();
+                    builder.AllowCredentials();
+                });
+        });
+        
         builder.Services.AddControllers();
 
         #region Auth
@@ -58,7 +69,6 @@ public class Program
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-                options.DefaultSignInScheme = GoogleDefaults.AuthenticationScheme;
             })
             .AddCookie()
             .AddGoogle(options =>
@@ -138,9 +148,11 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
-
         app.UseHttpsRedirection();
-        
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapControllers();
+        app.UseCors("AllowAllOrigins");
         await app.RunAsync();
     }
 }

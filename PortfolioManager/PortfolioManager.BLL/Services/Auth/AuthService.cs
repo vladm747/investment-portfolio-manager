@@ -49,10 +49,10 @@ public class AuthService: IAuthService
         else
         {
             var userToCreate = await _userManager.FindByEmailAsync(user.Email);
-            
+            var toCreate = userToCreate ?? throw new UserNotFoundException("Can't find user with such email");
+            var roleResult = await _userManager.AddToRoleAsync(toCreate, user.Role);
             // Ексепшены тоже кидать хуйня - лучше юзать резалт паттерн, а ексепшены использовать в ультра крайнем случае и для них по хорошегму добавить глобальный еррор хендлер шо возвращает 500 ошибку
             // бо ексепшены дорогие
-            var toCreate = userToCreate ?? throw new UserNotFoundException("Can't find user with such email");
             
             // var roleResult = await _userManager.AddToRoleAsync(toCreate, user.Role);
             // var roles = await _userManager.GetRolesAsync(toCreate);
@@ -69,7 +69,6 @@ public class AuthService: IAuthService
     {
         var user = _userManager.Users.SingleOrDefault(item => item.UserName == login.Email);
 
-        // сейм хуйня про ексепшены
         if (user == null)
         {
             throw new UserNotFoundException($"User with email: '{login.Email}' is not found.");

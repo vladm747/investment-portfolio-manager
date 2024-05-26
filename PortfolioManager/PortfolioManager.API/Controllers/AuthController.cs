@@ -36,7 +36,7 @@ public class AuthController : ControllerBase
         _jwtSettings = jwtSettings.Value;
         _signInManager = signInManager;
     }
-
+    [AllowAnonymous]
     [HttpPost("signup")]
     public async Task<IActionResult> SignUp(SignUpDTO model)
     {

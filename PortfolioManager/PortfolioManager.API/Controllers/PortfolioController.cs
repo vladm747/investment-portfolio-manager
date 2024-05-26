@@ -20,7 +20,7 @@ public class PortfolioController : ControllerBase
         
         return Ok(portfolios);
     }
-    
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetAsync(int id)
     {
         var portfolio = await _portfolioService.GetAsync(id);
