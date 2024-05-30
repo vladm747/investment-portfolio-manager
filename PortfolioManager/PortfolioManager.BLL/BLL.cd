@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="PortfolioManager.BLL.Services.Auth.AuthService" BaseTypeListCollapsed="true">
+    <Position X="9" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABCCAgIAACAAAAAAAAAAgAIAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Services\Auth\AuthService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="PortfolioManager.BLL.Services.Auth.RoleService" BaseTypeListCollapsed="true">
+    <Position X="12.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABAAAAAAAAAAAAAAAgAAgAAAAAAAAAAAAAAAQAAA=</HashCode>
+      <FileName>Services\Auth\RoleService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="PortfolioManager.BLL.Services.Auth.TokenService" BaseTypeListCollapsed="true">
+    <Position X="9" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABAAAAAAAAAAAAACAAAAAAAAAAAAAARAAAACACAA=</HashCode>
+      <FileName>Services\Auth\TokenService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="PortfolioManager.BLL.Services.Auth.UserService" BaseTypeListCollapsed="true">
+    <Position X="12.5" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEABAAIAAAAACAAAAABAAAAAACAAAAAAAAAAAQAAIA=</HashCode>
+      <FileName>Services\Auth\UserService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="PortfolioManager.BLL.Services.PortfolioService" BaseTypeListCollapsed="true">
+    <Position X="10.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAEAAAAAAAAAABAAAAAAAAAAAAAAAQIAAAAAA=</HashCode>
+      <FileName>Services\PortfolioService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="PortfolioManager.BLL.Services.StockService" BaseTypeListCollapsed="true">
+    <Position X="10.75" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAEQAAIAAAAABSAAAAAAAAAgAAAAAAIAAAIA=</HashCode>
+      <FileName>Services\StockService.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Interface Name="PortfolioManager.BLL.Interfaces.Auth.IAuthService" Collapsed="true">
+    <Position X="9" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACCAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Interfaces\Auth\IAuthService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.BLL.Interfaces.Auth.IRoleService" Collapsed="true">
+    <Position X="12.5" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAQAAA=</HashCode>
+      <FileName>Interfaces\Auth\IRoleService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.BLL.Interfaces.Auth.ITokenService" Collapsed="true">
+    <Position X="10.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAACACAA=</HashCode>
+      <FileName>Interfaces\Auth\ITokenService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.BLL.Interfaces.Auth.IUserService" Collapsed="true">
+    <Position X="12.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAIAAAAACAAAAAAAAAAAACAAAAAAAAAAAQAAIA=</HashCode>
+      <FileName>Interfaces\Auth\IUserService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.BLL.Interfaces.IPortfolioService" Collapsed="true">
+    <Position X="10.75" Y="2.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQIAAAAAA=</HashCode>
+      <FileName>Interfaces\IPortfolioService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.BLL.Interfaces.IStockService" Collapsed="true">
+    <Position X="9" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAEAAAAAAAAAAAAAAAAAAAAgAAAAAAIAAAIA=</HashCode>
+      <FileName>Interfaces\IStockService.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.Base.RepositoryBase&lt;TKey, TEntity&gt;">
+    <Position X="8.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAiAAAAAAAAAARACAAAAAAAgAAAAAAIAEAIA=</HashCode>
+      <FileName>Infrastructure\DI\Implementation\Base\RepositoryBase.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.PortfolioRepository">
+    <Position X="10.75" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Implementation\PortfolioRepository.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.StockDataHistoryRepository">
+    <Position X="10.75" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Implementation\StockDataHistoryRepository.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.StockRepository">
+    <Position X="6.75" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Implementation\StockRepository.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.StockSymbolRepository" Collapsed="true">
+    <Position X="12.75" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Implementation\StockSymbolRepository.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="PortfolioManager.DAL.Entities.Auth.User">
+    <Position X="9.75" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAICAAAAQAAAAIAAAAAAAEAAAAAAAAAAAAAAAAAgAAA=</HashCode>
+      <FileName>Entities\Auth\User.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PortfolioManager.DAL.Entities.Portfolio">
+    <Position X="6.5" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAADAAAACAAAAAAAAAAAAAwAwAAAAAAAEAAAAAAAAAA=</HashCode>
+      <FileName>Entities\Portfolio.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PortfolioManager.DAL.Entities.Stock">
+    <Position X="8" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAGAAAAAAAAAAAAESACAIBACAAAAAAgEACCAA=</HashCode>
+      <FileName>Entities\Stock.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PortfolioManager.DAL.Entities.StockDataHistory" Collapsed="true">
+    <Position X="9.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAQAAAAAAAAAAAAAAAAAAAAABAAAAAAACCAA=</HashCode>
+      <FileName>Entities\StockDataHistory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PortfolioManager.DAL.Entities.StockSymbol">
+    <Position X="11.5" Y="7.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAACAA=</HashCode>
+      <FileName>Entities\StockSymbol.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="PortfolioManager.DAL.Infrastructure.DI.Abstract.Base.IRepositoryBase&lt;TKey, TEntity&gt;">
+    <Position X="6.75" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAIAEAIA=</HashCode>
+      <FileName>Infrastructure\DI\Abstract\Base\IRepositoryBase.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.DAL.Infrastructure.DI.Abstract.IPortfolioRepository">
+    <Position X="6.5" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Abstract\IPortfolioRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.DAL.Infrastructure.DI.Abstract.IStockDataHistoryRepository" Collapsed="true">
+    <Position X="8.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Abstract\IStockDataHistoryRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.DAL.Infrastructure.DI.Abstract.IStockRepository">
+    <Position X="11" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Abstract\IStockRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="PortfolioManager.DAL.Infrastructure.DI.Abstract.IStockSymbolRepository" Collapsed="true">
+    <Position X="12.75" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Infrastructure\DI\Abstract\IStockSymbolRepository.cs</FileName>
+    </TypeIdentifier>
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
