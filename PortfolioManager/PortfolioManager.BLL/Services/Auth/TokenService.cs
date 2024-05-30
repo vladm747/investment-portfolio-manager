@@ -45,8 +45,7 @@ public class TokenService: ITokenService
             new (JwtRegisteredClaimNames.Sub, user.Id),
             new (ClaimTypes.Name, user.FullName),
             new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new (ClaimTypes.NameIdentifier, user.Id),
-            new (ClaimTypes.Role, "investor")
+            new (ClaimTypes.NameIdentifier, user.Id)
         };
 
         return claims;

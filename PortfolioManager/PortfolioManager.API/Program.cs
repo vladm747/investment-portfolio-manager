@@ -59,6 +59,15 @@ public class Program
         builder.Services.Configure<JwtSettings>(
             builder.Configuration.GetSection("Jwt"));
         var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
+        builder.Services.AddIdentity<User, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 6;
+            })
+            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
+            .AddDefaultTokenProviders();
         
         builder.Services
             .AddAuthorization(options => 
@@ -68,9 +77,9 @@ public class Program
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddCookie()
+            .AddCookie(options => { options.LoginPath = "/auth/signin/"; })
             .AddGoogle(options =>
             {
                 options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
@@ -88,15 +97,6 @@ public class Program
                 };
             });
         
-        builder.Services.AddIdentity<User, IdentityRole>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-            })
-            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
-            .AddDefaultTokenProviders();
 
         builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
             opt.TokenLifespan = TimeSpan.FromHours(1));
