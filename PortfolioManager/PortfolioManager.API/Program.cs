@@ -41,13 +41,33 @@ public class Program
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
         builder.Services.AddScoped<IYahooFinanceService, YahooFinanceService>();
-
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(name: "AllowAllOrigins",
+                builder =>
+                {
+                    builder.WithOrigins("https://localhost:44344");
+                    builder.AllowAnyHeader();
+                    builder.AllowAnyMethod();
+                    builder.AllowCredentials();
+                });
+        });
+        
         builder.Services.AddControllers();
 
         #region Auth
         builder.Services.Configure<JwtSettings>(
             builder.Configuration.GetSection("Jwt"));
         var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
+        builder.Services.AddIdentity<User, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 6;
+            })
+            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
+            .AddDefaultTokenProviders();
         
         builder.Services
             .AddAuthorization(options => 
@@ -57,10 +77,9 @@ public class Program
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-                options.DefaultSignInScheme = GoogleDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddCookie()
+            .AddCookie(options => { options.LoginPath = "/auth/signin/"; })
             .AddGoogle(options =>
             {
                 options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
@@ -78,15 +97,6 @@ public class Program
                 };
             });
         
-        builder.Services.AddIdentity<User, IdentityRole>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-            })
-            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
-            .AddDefaultTokenProviders();
 
         builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
             opt.TokenLifespan = TimeSpan.FromHours(1));
@@ -138,9 +148,11 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
-
         app.UseHttpsRedirection();
-        
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapControllers();
+        app.UseCors("AllowAllOrigins");
         await app.RunAsync();
     }
 }

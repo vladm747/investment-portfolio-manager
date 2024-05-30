@@ -12,7 +12,7 @@ public class StockController : ControllerBase
         _stockService = stockService;
     }
     
-    [HttpGet]
+    [HttpGet("{portfolioId}")]
     public async Task<IActionResult> GetAllAsync(int portfolioId)
     {
         var stocks = await _stockService.GetAllAsync(portfolioId);
@@ -20,7 +20,7 @@ public class StockController : ControllerBase
         return Ok(stocks);
     }
     
-    [HttpPut]
+    [HttpPut("{stockId}/{quantity}")]
     public async Task<IActionResult> UpdateStock(int stockId, int quantity)
     {
         var stock = await _stockService.UpdateAsync(stockId, quantity);
@@ -30,7 +30,7 @@ public class StockController : ControllerBase
         
         return Ok(stock);
     }
-    
+    [HttpPut("info/{portfolioId}")]
     public async Task<IActionResult> UpdateInfo(int portfolioId)
     {
         await _stockService.UpdateInfo(portfolioId);
@@ -45,7 +45,7 @@ public class StockController : ControllerBase
         return Ok(result);
     }
     
-    [HttpDelete]
+    [HttpDelete("{stockId}")]
     public async Task<IActionResult> DeleteStock(int stockId)
     {
         var result = await _stockService.DeleteAsync(stockId);
