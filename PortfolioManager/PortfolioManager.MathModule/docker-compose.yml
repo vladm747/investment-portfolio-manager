@@ -1,0 +1,7 @@
+services:
+  pythonOpt:
+    image: portfolio-math-module
+    build: 
+      context: .
+    ports:
+      - "8011:8011"
