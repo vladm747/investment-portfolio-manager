@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+datetime
+numpy
+pandas
+yfinance
+quantstats
+pyportfolioopt
+scipy
+IPython
