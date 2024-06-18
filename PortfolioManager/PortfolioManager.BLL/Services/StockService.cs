@@ -27,12 +27,13 @@ public class StockService: IStockService
 
     public async Task<IEnumerable<StockDTO>> GetAllAsync(int portfolioId)
     {
-        var stocks = _repo.GetAllAsync(portfolioId);
+        var stocks = await _repo.GetAllAsync(portfolioId);
 
         return _mapper.Map<IEnumerable<StockDTO>>(stocks).ToList();
     }
 
-    public async Task<StockDTO> CreateAsync(int portfolioId, int quantity, string symbol, decimal entryPrice)
+    public async Task<StockDTO> CreateAsync(int portfolioId, int quantity, string symbol, double entryPrice,
+        DateTime entryDate)
     {
         var stock = await _stockSymbolRepo.GetBySymbol(symbol);
         
@@ -44,11 +45,13 @@ public class StockService: IStockService
                 throw new Exception("Stock info not found");
     
         stockInfo.StockDTO.Symbol = symbol;
+        stockInfo.StockDTO.EntryDate = entryDate;
         stockInfo.StockDTO.Quantity = quantity;
         stockInfo.StockDTO.PortfolioId = portfolioId;
         stockInfo.StockDTO.EntryPrice = entryPrice;
-        stockInfo.StockDTO.TotalValue = stockInfo.StockDTO.Quantity * stockInfo.StockDTO.CurrentPrice;
-        stockInfo.StockDTO.Gain = (decimal)(stockInfo.StockDTO.TotalValue - stockInfo.StockDTO.Quantity * stockInfo.StockDTO.EntryPrice);
+        stockInfo.StockDTO.TotalCurrentPrice = stockInfo.StockDTO.Quantity * stockInfo.StockDTO.CurrentPrice;
+        stockInfo.StockDTO.Gain = (stockInfo.StockDTO.TotalCurrentPrice - stockInfo.StockDTO.Quantity * stockInfo.StockDTO.EntryPrice);
+        stockInfo.StockDTO.GainPercentage = (stockInfo.StockDTO.Gain /(stockInfo.StockDTO.Quantity * stockInfo.StockDTO.EntryPrice)) * 100;
       
         var model = _mapper.Map<Stock>(stockInfo.StockDTO);
         var result = await _repo.CreateAsync(model);
@@ -69,7 +72,9 @@ public class StockService: IStockService
             throw new InvalidOperationException("The entity you are trying to update does not exist in database!");
 
         entity.Quantity = quantity;
-        entity.TotalValue = entity.Quantity * entity.CurrentPrice;
+        entity.TotalCurrentPrice = entity.Quantity * entity.CurrentPrice;
+        entity.Gain = entity.Quantity * entity.CurrentPrice - entity.Quantity * entity.EntryPrice;
+        entity.GainPercentage = (entity.Gain / (entity.Quantity * entity.EntryPrice)) * 100;
         
         var result = await _repo.UpdateAsync(entity);
 
@@ -92,9 +97,10 @@ public class StockService: IStockService
             if(!stockPriceResponseDto.IsSuccess)
                 throw new Exception("Stock price not found");
             
-            stock.CurrentPrice = (decimal)stockPriceResponseDto.CurrentPrice!;
-            stock.TotalValue = stock.Quantity * stock.CurrentPrice;
+            stock.CurrentPrice = stockPriceResponseDto.CurrentPrice!;
+            stock.TotalCurrentPrice = stock.Quantity * stock.CurrentPrice;
             stock.Gain = stock.Quantity * stock.CurrentPrice - stock.Quantity * stock.EntryPrice;
+            stock.GainPercentage = (stock.Gain / (stock.Quantity * stock.EntryPrice)) * 100;
             var result = await _repo.UpdateAsync(stock);
             await _portfolioService.UpdateTotalPortfolioValue(portfolioId);
         }
@@ -109,7 +115,8 @@ public class StockService: IStockService
         
         var stock = _mapper.Map<Stock>(entity);
         var result = await _repo.DeleteAsync(stock);
-        
+        await _portfolioService.UpdateTotalPortfolioValue(entity.PortfolioId);
+
         return result > 0;
     }   
 }

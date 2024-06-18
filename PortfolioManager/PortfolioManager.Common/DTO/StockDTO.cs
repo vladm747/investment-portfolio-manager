@@ -10,11 +10,11 @@ public class StockDTO
     [MaxLength(200)]
     public string Name { get; set; } = string.Empty;
     public int Quantity { get; set; }
-    public decimal EntryPrice { get; set; }
-    public decimal? CurrentPrice { get; set; }    
-    public decimal? TotalValue { get; set; } //Quantity * CurrentPrice
-    public decimal Gain { get; set; } //Quantity * CurrentPrice - Quantity * EntryPrice
-    public decimal GainPercentage { get; set; } //Gain / (EntryPrice * Quantity) * 100
+    public double EntryPrice { get; set; }
+    public double CurrentPrice { get; set; }    
+    public double TotalCurrentPrice { get; set; } //Quantity * CurrentPrice
+    public double Gain { get; set; } //Quantity * CurrentPrice - Quantity * EntryPrice
+    public double GainPercentage { get; set; } //Gain / (EntryPrice * Quantity) * 100
     public DateTime EntryDate { get; set; }
     [MaxLength(10)]
     public string Currency { get; set; } = string.Empty; 

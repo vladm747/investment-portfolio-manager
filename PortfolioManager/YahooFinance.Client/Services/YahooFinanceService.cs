@@ -11,21 +11,22 @@ public class YahooFinanceService: IYahooFinanceService
 {
     public PriceResponseDTO GetPriceAsync(string symbol)
     {
-        var client = new RestClient("https://yahoo-finance-data2.p.rapidapi.com/price?start=1&limit=100");
-        var request = new RestRequest("", Method.Post);
-        request.AddHeader("content-type", "application/json");
-        request.AddHeader("X-RapidAPI-Key", "1c78334ab9mshac46f7830b41f62p1bd339jsn9173bb9244a2");
-        request.AddHeader("X-RapidAPI-Host", "yahoo-finance-data2.p.rapidapi.com");
-        request.AddParameter("application/json", "{\r \"symbol\": \"" + symbol +  "\",\r \"key\": \"1d\"\r }",
-            ParameterType.RequestBody);
-        var response = client.Execute<string>(request);
+        var options = new RestClientOptions("http://localhost:8011")
+        {
+            MaxTimeout = -1,
+        };
+        var client = new RestClient(options);
+        var request = new RestRequest($"/yfinance/{symbol}/price", Method.Get);
+        request.AddHeader("Content-Type", "application/json");
+        RestResponse response = client.Execute<string>(request);
+        
         if (response.StatusCode == System.Net.HttpStatusCode.OK)
         {
-            var priceObject = JsonConvert.DeserializeObject<PriceJsonObject.Root>(response.Content);
+            var priceObject = JsonConvert.DeserializeObject<PriceJsonObject>(response.Content);
             return new PriceResponseDTO()
             {
                 IsSuccess = true,
-                CurrentPrice = priceObject?.Data.result[0]?.close
+                CurrentPrice = priceObject?.price ?? 0,
             };
         }
         else
@@ -44,31 +45,32 @@ public class YahooFinanceService: IYahooFinanceService
     {
         InfoResponseDTO stockInfoResponse = new InfoResponseDTO();
         
-        var client = new RestClient("https://yahoo-finance-data2.p.rapidapi.com/detail-info");
-        var request = new RestRequest("", Method.Post);
-        
-        request.AddHeader("content-type", "application/json");
-        request.AddHeader("X-RapidAPI-Key", "1c78334ab9mshac46f7830b41f62p1bd339jsn9173bb9244a2");
-        request.AddHeader("X-RapidAPI-Host", "yahoo-finance-data2.p.rapidapi.com");
-        request.AddParameter("application/json", "{\r\"symbol\":" + symbol + "\r }", ParameterType.RequestBody);
-        
-        var response = client.Execute<string>(request);
-
-        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+        var options = new RestClientOptions("http://localhost:8011")
         {
-            var stock = JsonConvert.DeserializeObject<StockJsonObject.Root>(response.Content);
+            MaxTimeout = -1,
+        };
+        var client = new RestClient(options);
+        var request = new RestRequest($"/yfinance/{symbol}", Method.Get);
+        request.AddHeader("Content-Type", "application/json");
+        RestResponse response = await client.ExecuteAsync(request);
+        if (response.IsSuccessful)
+        {
+            // Парсинг JSON відповіді у модель StockInfo
+            if (response.Content != null)
+            {
+                StockInfoJsonObject stockInfo = JsonConvert.DeserializeObject<StockInfoJsonObject>(response.Content);
+        
+                stockInfoResponse.StockDTO = new StockDTO();
+                stockInfoResponse.StockDTO.Symbol = symbol;
+                stockInfoResponse.StockDTO.Name = stockInfo!.ShortName;
+                stockInfoResponse.StockDTO.CurrentPrice = stockInfo.CurrentPrice;
+                stockInfoResponse.StockDTO.Currency = stockInfo.Currency;
             
-            stockInfoResponse.StockDTO.Symbol = symbol;
-            stockInfoResponse.StockDTO.Name = stock.Data.shortName;
-            stockInfoResponse.StockDTO.CurrentPrice = stock.Data.currentPrice;
-            stockInfoResponse.StockDTO.Currency = stock.Data.currency;
+                var sector = stockInfo.Sector.Trim();
             
-            var sector = stock.Data.sector.Trim();
-            
-            stockInfoResponse.StockDTO.Sector = Enum.Parse<SectorEnum>(sector);
-            stockInfoResponse.StockDTO.EntryDate = DateTime.Now;
-            stockInfoResponse.StockDTO.EntryPrice = stock.Data.currentPrice ?? 0;
-            
+                stockInfoResponse.StockDTO.Sector = Enum.Parse<SectorEnum>(sector);
+            }
+
             stockInfoResponse.IsSuccess = true;
 
             return stockInfoResponse;
@@ -77,7 +79,7 @@ public class YahooFinanceService: IYahooFinanceService
         {
             stockInfoResponse.IsSuccess = false;
             stockInfoResponse.Code = (int)response.StatusCode;
-            stockInfoResponse.Message = response.ErrorMessage ?? "Error while getting stock info";
+            stockInfoResponse.Message = response.ErrorMessage ?? "Error while getting stockInfo info";
             
             return stockInfoResponse;                
         }

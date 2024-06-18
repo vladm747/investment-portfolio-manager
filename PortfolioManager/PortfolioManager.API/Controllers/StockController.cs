@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PortfolioManager.BLL.Interfaces;
+using PortfolioManager.Common.DTO;
 
 namespace PortfolioManager.API.Controllers;
 
+[Authorize]
 [Route("api/stock")]
 public class StockController : ControllerBase
 {
@@ -30,7 +33,7 @@ public class StockController : ControllerBase
         
         return Ok(stock);
     }
-    [HttpPut("info/{portfolioId}")]
+    [HttpGet("info/{portfolioId}")]
     public async Task<IActionResult> UpdateInfo(int portfolioId)
     {
         await _stockService.UpdateInfo(portfolioId);
@@ -38,9 +41,9 @@ public class StockController : ControllerBase
         return Ok();
     }
     [HttpPost]
-    public async Task<IActionResult> CreateStock(int portfolioId, int quantity, string symbol, decimal entryPrice)
+    public async Task<IActionResult> CreateStock([FromBody] CreateStockDTO stock)
     {
-        var result = await _stockService.CreateAsync(portfolioId, quantity, symbol, entryPrice);
+        var result = await _stockService.CreateAsync(stock.PortfolioId, stock.Quantity, stock.Symbol, stock.EntryPrice, stock.EntryDate);
         
         return Ok(result);
     }

@@ -10,10 +10,10 @@ public class Portfolio
     [MaxLength(100)]
     public string Name { get; set; } = string.Empty;
 
-    public decimal TotalEntryPrice {get; set; }
-    public decimal TotalCurrenPrice {get; set; }
-    public decimal TotalGain {get; set; } //TotalCurrentValue - TotalEntryValue
-    
+    public double TotalEntryPrice {get; set; }
+    public double TotalCurrenPrice {get; set; }
+    public double? TotalGain {get; set; } //TotalCurrentValue - TotalEntryValue
+    public double? TotalGainPercentage {get; set; } //    
     public string UserId { get; set; } = string.Empty;
     public virtual User? User { get; set; }
     

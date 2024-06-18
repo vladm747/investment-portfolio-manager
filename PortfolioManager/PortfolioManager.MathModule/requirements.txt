@@ -8,3 +8,5 @@ quantstats
 pyportfolioopt
 scipy
 IPython
+pydantic
+typing

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PortfolioManager.BLL.Interfaces;
+using PortfolioManager.Common.DTO;
 
 namespace PortfolioManager.API.Controllers;
-
-[Route("api/portfolio")]
+[Authorize]
+[Route("api")]
 public class PortfolioController : ControllerBase
 {
     private readonly IPortfolioService _portfolioService;
@@ -13,14 +15,14 @@ public class PortfolioController : ControllerBase
         _portfolioService = portfolioService;
     }
     
-    [HttpGet]
-    public async Task<IActionResult> GetAllAsync()
+    [HttpPost("portfolios")]
+    public async Task<IActionResult> GetAllAsync([FromForm] string userId)
     {
-        var portfolios = await _portfolioService.GetAllAsync();
+        var portfolios = await _portfolioService.GetAllAsync(userId);
         
         return Ok(portfolios);
     }
-    [HttpGet("{id}")]
+    [HttpGet("portfolio/{id}")]
     public async Task<IActionResult> GetAsync(int id)
     {
         var portfolio = await _portfolioService.GetAsync(id);
@@ -29,5 +31,21 @@ public class PortfolioController : ControllerBase
             return NotFound();
         
         return Ok(portfolio);
+    }
+
+    [HttpPost("portfolio")]
+    public async Task<IActionResult> CreateAsync([FromBody] CreatePortfolioDTO createPortfolioDto)
+    {
+        var createdPortfolio = await _portfolioService.CreatePortfolioAsync(createPortfolioDto);
+        
+        return Ok(createdPortfolio);
+    }
+    
+    [HttpDelete("portfolio/{portfolioId}")]
+    public async Task<IActionResult> CreateAsync(int portfolioId)
+    {
+        var createdPortfolio = await _portfolioService.DeleteAsync(portfolioId);
+        
+        return Ok(createdPortfolio);
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace PortfolioManager.API.Filters;
 
-public class PersonalBlogExceptionFilterAttribute : Attribute, IExceptionFilter
+public class PortfolioManagerExceptionFilterAttribute : Attribute, IExceptionFilter
 {
     public void OnException(ExceptionContext context)
     {

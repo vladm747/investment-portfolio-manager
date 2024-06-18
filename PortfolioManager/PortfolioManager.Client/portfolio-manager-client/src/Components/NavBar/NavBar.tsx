@@ -12,6 +12,7 @@ function NavBar() {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
 
+
   return (
       <Box sx={{ flexGrow: 1 }}>
           <AppBar position="static">

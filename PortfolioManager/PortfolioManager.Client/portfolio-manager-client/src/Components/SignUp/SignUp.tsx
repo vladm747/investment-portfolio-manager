@@ -10,7 +10,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import {SignUpEndpoint} from "../../Services/AuthService";
+import {SignUpAsync} from "../../Services/AuthService";
 import {SignUpDto} from "./SignUpDto";
 import { Link as RouterLink } from 'react-router-dom';
 function Copyright(props: any) {
@@ -51,7 +51,7 @@ function SignUp() {
             formDataObj[key as keyof SignUpDto] = value as string;
         });
 
-        const userId = await SignUpEndpoint(formDataObj as SignUpDto);
+        const userId = await SignUpAsync(formDataObj as SignUpDto);
 
         setIsSignedUp(userId.length == 36);
 
