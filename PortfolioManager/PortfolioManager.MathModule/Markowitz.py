@@ -10,6 +10,9 @@ from pypfopt import risk_models
 from pypfopt.efficient_frontier import EfficientFrontier
 from scipy.optimize import minimize
 import io
+from typing import List, Dict, Optional
+from pydantic import BaseModel
+
 
 # Налаштування базової конфігурації логування
 logging.basicConfig(
@@ -36,6 +39,31 @@ class total_returns_stats:
         self.base_weight = base_weight
         
 
+def get_historical_prices(symbol: str, start_date: datetime):
+    stock = yf.Ticker(symbol)
+    history = stock.history(start=start_date)
+    history.index = history.index.tz_localize(None)  # Ensure the index is timezone-naive
+
+    return history['Close']
+
+def aggregate_portfolio_growth(stocks):
+    earliest_date = min(stock.EntryDate for stock in stocks).date()
+    end_date = datetime.today().date()
+    all_dates = pd.date_range(start=earliest_date, end=end_date)
+    
+    total_prices = pd.Series(0, index=all_dates, dtype=float)  # Initialize total_prices with zeros
+
+    for stock in stocks:
+        history = get_historical_prices(stock.Symbol, stock.EntryDate)
+        history = history * stock.Quantity
+
+        # Reindex to ensure continuity from the earliest date to today
+        history = history.reindex(all_dates, method='ffill').fillna(0)
+
+        total_prices = total_prices.add(history, fill_value=0)
+
+    total_prices = total_prices.fillna(method='ffill').fillna(method='bfill')
+    return total_prices.to_dict()
 
 def markowitz_mean_variance_optimization(base_weights, portfolio_symbols):
 
@@ -155,7 +183,7 @@ def markowitz_mean_variance_optimization(base_weights, portfolio_symbols):
 
     weights = ef.max_sharpe() # Optimizing weights for Sharpe ratio maximization 
 
-    clean_weights = ef.clean_weights() # clean_weights rounds the weights and clips near-zeros
+#clean_weights = ef.clean_weights() # clean_weights rounds the weights and clips near-zeros
 
     clean_indexes = []
 
@@ -165,14 +193,14 @@ def markowitz_mean_variance_optimization(base_weights, portfolio_symbols):
     #     clean_indexes.append(i)
     #     print(f'{list(merged_df.columns)[i]}: {clean_weights[list(merged_df.columns)[i]]}')
 
-    if not clean_weights:
-        raise ValueError("clean_weights is empty, optimization might have failed")
-    print(f"clean_weights: {clean_weights}")
+    # if not clean_weights:
+    #     raise ValueError("clean_weights is empty, optimization might have failed")
+    # print(f"clean_weights: {clean_weights}")
 
-    for symbol, weight in clean_weights.items():
-        print(f'{symbol}: {weight}')
+    # for symbol, weight in clean_weights.items():
+    #     print(f'{symbol}: {weight}')
 
-    optimized_portfolio = calc_portfolio(total_stats_list, clean_weights.values())
+    optimized_portfolio = calc_portfolio(total_stats_list, weights.values())
     
 
     # optimized_portfolio = pd.Series(index=base_portfolio.index, dtype=float)
@@ -188,17 +216,69 @@ def markowitz_mean_variance_optimization(base_weights, portfolio_symbols):
      # Збереження метрик у змінну
     optimized_portfolio_report = qs.reports.metrics(optimized_portfolio, benchmark=base_portfolio, mode="full", display=False)
 
+    weights = {
+        "Weights":{
+            "BaseWeights": base_weights,
+            "OptimizedWeights": weights
+        }
+        
+    }
 
-    return base_portfolio_report, optimized_portfolio_report
+    return base_portfolio_report, optimized_portfolio_report, weights
 
-base_weights = [0.25, 0.25, 0.25, 0.25]
-portfolio_symbols = ["AMZN", "MSFT", "AMD", "GOOGL"]
+class StockDTO(BaseModel):
+    id: int
+    symbol: str
+    name: str
+    quantity: int
+    entry_price: float
+    current_price: float
+    total_value: float
+    gain: float
+    gain_percentage: float
+    entry_date: datetime
+    currency: str
+    sector: str
+    portfolio_id: int
 
+
+stock1 = StockDTO(
+    id=1,
+    symbol='MSFT',
+    name='Microsoft Corporation',
+    quantity=2,
+    entry_price=100,
+    current_price=150,
+    total_value=300,
+    gain=50,
+    gain_percentage=50,
+    entry_date=datetime(2021, 1, 1),
+    currency='USD',
+    sector='Technology',
+    portfolio_id=1
+)
+
+stock2 = StockDTO(
+    id=2,
+    symbol='AAPL',
+    name='Apple Inc',
+    quantity=3,
+    entry_price=120,
+    current_price=130,
+    total_value=390,
+    gain=10,
+    gain_percentage=8.33,
+    entry_date=datetime(2022, 2, 1),
+    currency='USD',
+    sector='Technology',
+    portfolio_id=1
+)
+
+stocks = [stock1, stock2]
 
 try:
-    base_portfolio_report, optimized_portfolio_report = markowitz_mean_variance_optimization(base_weights, portfolio_symbols)
-    print(base_portfolio_report)
-    print(optimized_portfolio_report)
+    portfolio_growth = aggregate_portfolio_growth(stocks)
+    print(portfolio_growth)
 except Exception as e:
     logging.error("An error occurred during the optimization process", exc_info=True)
     print(f"Exception: {e}")

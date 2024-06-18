@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PortfolioManager.API.Filters;
 using PortfolioManager.BLL.Helpers;
 using PortfolioManager.BLL.Interfaces;
 using PortfolioManager.BLL.Interfaces.Auth;
@@ -13,8 +14,10 @@ using PortfolioManager.BLL.Profiles;
 using PortfolioManager.BLL.Services;
 using PortfolioManager.BLL.Services.Auth;
 using PortfolioManager.DAL.Context;
+using PortfolioManager.DAL.Entities;
 using PortfolioManager.DAL.Entities.Auth;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract;
+using PortfolioManager.DAL.Infrastructure.DI.Abstract.Base;
 using PortfolioManager.DAL.Infrastructure.DI.Implementation;
 using YahooFinance.Client.Interfaces;
 using YahooFinance.Client.Services;
@@ -33,9 +36,11 @@ public class Program
         
         builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         builder.Services.AddScoped<IStockSymbolRepository, StockSymbolRepository>();
+        builder.Services.AddScoped<IPortfolioStatisticForOptRepository, PortfolioStatisticForOptRepository>();
         builder.Services.AddScoped<IStockRepository, StockRepository>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IPortfolioService, PortfolioService>();
+        builder.Services.AddScoped<IPortfolioStatisticService, PortfolioStatisticService>();
         builder.Services.AddScoped<IStockService, StockService>();
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
@@ -46,14 +51,17 @@ public class Program
             options.AddPolicy(name: "AllowAllOrigins",
                 builder =>
                 {
-                    builder.WithOrigins("https://localhost:44344");
+                    //TODO: Change origins to production
+                    var origins = new string[2]{"https://localhost:44344", "http://localhost:3000"};
+                    builder.WithOrigins(origins);
                     builder.AllowAnyHeader();
                     builder.AllowAnyMethod();
                     builder.AllowCredentials();
                 });
         });
         
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(options => options.Filters.Add<PortfolioManagerExceptionFilterAttribute>());
+
 
         #region Auth
         builder.Services.Configure<JwtSettings>(
@@ -79,7 +87,9 @@ public class Program
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddCookie(options => { options.LoginPath = "/auth/signin/"; })
+            .AddCookie(options => { options.LoginPath = "api/auth/signin/"; 
+                options.Cookie.SameSite = SameSiteMode.None; // Important for cross-origin cookies
+            })
             .AddGoogle(options =>
             {
                 options.ClientId = builder.Configuration["Authentication:Google:ClientId"];

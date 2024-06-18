@@ -12,6 +12,13 @@ import Grid from '@mui/material/Grid';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import {SignInAsync} from "../../Services/AuthService";
+import SignInDto  from "../../Components/SignIn/SignInDto";
+import {useNavigate} from "react-router-dom";
+import {useCookies} from "react-cookie";
+import UserDto from "../../DTO/UserDto";
+import {GetAllPortfoliosAsync} from "../../Services/PortfolioService";
+import {GetCurrentUser} from "../../Services/UserService";
 
 function Copyright(props: any) {
     return (
@@ -27,13 +34,47 @@ function Copyright(props: any) {
 const defaultTheme = createTheme();
 
 function SignIn() {
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const navigate = useNavigate();
+    const [cookie, setCookie] = useCookies(['accessToken'])
+    const [currenUser, setCurrentUser] = React.useState<UserDto>({} as UserDto);
+
+    // const fetchCurrentUser = async () => {
+    //     const token = cookie.accessToken;
+    //     if (token) {
+    //         const response = GetCurrentUser(cookie.accessToken)
+    //         response.then((data)=>{
+    //             setCurrentUser(data);
+    //         }).catch((error) => {
+    //             console.error('SignIn. Error fetching current user', error);
+    //             throw error;
+    //         });
+    //
+    //         if(currenUser && currenUser.id != ''){
+    //             setAuthenticated(true);
+    //         }
+    //     }
+    // };
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
+        const signInDto: SignInDto = {
+            email: data.get('email') as string,
+            password: data.get('password') as string
+        };
         console.log({
             email: data.get('email'),
             password: data.get('password'),
         });
+
+        const tokens = await SignInAsync(signInDto);
+
+        if (tokens.accessToken && tokens.refreshToken) {
+            setCookie('accessToken', tokens.accessToken);
+
+
+            navigate('/');
+        }
     };
 
     return (

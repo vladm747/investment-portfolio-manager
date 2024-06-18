@@ -24,6 +24,7 @@ public class PortfolioManagerDbContext: IdentityDbContext<User>
     public DbSet<Stock> Stocks { get; set; }
     public virtual DbSet<StockSymbol> StockSymbols { get; set; }
     public DbSet<StockDataHistory> StockDataHistory { get; set; }
+    public DbSet<PortfolioStatisticForOpt>  PortfolioStatisticForOptimization{ get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

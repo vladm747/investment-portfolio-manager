@@ -9,9 +9,10 @@ namespace PortfolioManager.DAL.Infrastructure.DI.Implementation;
 public class PortfolioRepository(PortfolioManagerDbContext context)
     : RepositoryBase<int, Portfolio>(context), IPortfolioRepository
 {
-    public async Task<IEnumerable<Portfolio>> GetAllAsync()
+    public async Task<IEnumerable<Portfolio>> GetAllAsync(string userId)
     {
-        return await Table.Select(item => item).ToListAsync();
+        return await Table.Where(item => item.UserId == userId)
+            .Include(item => item.Stocks).ToListAsync();
     }
 
     public async Task<Portfolio?> GetAsync(int id)

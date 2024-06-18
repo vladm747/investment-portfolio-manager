@@ -110,6 +110,7 @@ public class AuthController : ControllerBase
         return RedirectToAction("Index", "Portfolio");
     }
     
+    [Authorize]
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshToken()
     {

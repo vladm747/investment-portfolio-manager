@@ -51,13 +51,13 @@ namespace PortfolioManager.DAL.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "ab0541da-1692-47f2-b799-0366af00791b",
+                            Id = "0079b904-7866-4767-9114-9d41120c61d9",
                             Name = "investor",
                             NormalizedName = "INVESTOR"
                         },
                         new
                         {
-                            Id = "62f1f1f5-0f1c-40d2-be45-68b9613709d5",
+                            Id = "ba0531e4-03ba-4067-9acb-24f620cf5c98",
                             Name = "admin",
                             NormalizedName = "ADMIN"
                         });
@@ -262,14 +262,17 @@ namespace PortfolioManager.DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("TotalCurrenPrice")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("TotalCurrenPrice")
+                        .HasColumnType("float");
 
-                    b.Property<decimal>("TotalEntryPrice")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("TotalEntryPrice")
+                        .HasColumnType("float");
 
-                    b.Property<decimal>("TotalGain")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double?>("TotalGain")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("TotalGainPercentage")
+                        .HasColumnType("float");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -280,6 +283,33 @@ namespace PortfolioManager.DAL.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Portfolios");
+                });
+
+            modelBuilder.Entity("PortfolioManager.DAL.Entities.PortfolioStatisticForOpt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("LastUpdate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PortfolioId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Symbols")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Weights")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PortfolioStatisticForOptimization");
                 });
 
             modelBuilder.Entity("PortfolioManager.DAL.Entities.Stock", b =>
@@ -295,20 +325,20 @@ namespace PortfolioManager.DAL.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<decimal>("CurrentPrice")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("CurrentPrice")
+                        .HasColumnType("float");
 
                     b.Property<DateTime>("EntryDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("EntryPrice")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("EntryPrice")
+                        .HasColumnType("float");
 
-                    b.Property<decimal>("Gain")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("Gain")
+                        .HasColumnType("float");
 
-                    b.Property<decimal>("GainPercentage")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("GainPercentage")
+                        .HasColumnType("float");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -329,8 +359,8 @@ namespace PortfolioManager.DAL.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<decimal>("TotalValue")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("TotalCurrentPrice")
+                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -350,12 +380,16 @@ namespace PortfolioManager.DAL.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("PortfolioId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
 
                     b.HasKey("Id");
 
