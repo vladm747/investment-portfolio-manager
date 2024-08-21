@@ -3,7 +3,6 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
-import Link from '@mui/material/Link';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -50,7 +49,7 @@ function SignUp() {
         formData.forEach((value, key) => {
             formDataObj[key as keyof SignUpDto] = value as string;
         });
-
+        formDataObj.role = 'investor';
         const userId = await SignUpAsync(formDataObj as SignUpDto);
 
         setIsSignedUp(userId.length == 36);
@@ -74,7 +73,7 @@ function SignUp() {
                         <LockOutlinedIcon />
                     </Avatar>
                     <Typography component="h1" variant="h5">
-                        Sign up
+                        Реєстрація
                     </Typography>
                     <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
                         <Grid container spacing={2}>
@@ -85,7 +84,7 @@ function SignUp() {
                                     required
                                     fullWidth
                                     id="firstName"
-                                    label="First Name"
+                                    label="Ім'я"
                                     autoFocus
                                 />
                             </Grid>
@@ -94,7 +93,7 @@ function SignUp() {
                                     required
                                     fullWidth
                                     id="lastName"
-                                    label="Last Name"
+                                    label="Прізвище"
                                     name="lastName"
                                     autoComplete="family-name"
                                 />
@@ -104,7 +103,7 @@ function SignUp() {
                                     required
                                     fullWidth
                                     id="email"
-                                    label="Email Address"
+                                    label="Пошта"
                                     name="email"
                                     autoComplete="email"
                                 />
@@ -114,7 +113,7 @@ function SignUp() {
                                     required
                                     fullWidth
                                     name="password"
-                                    label="Password"
+                                    label="Пароль"
                                     type="password"
                                     id="password"
                                     autoComplete="new-password"
@@ -127,7 +126,7 @@ function SignUp() {
                             variant="contained"
                             sx={{ mt: 3, mb: 2 }}
                         >
-                            Sign Up
+                            Зареєструватись
                         </Button>
 
                         {isSignedUp && (

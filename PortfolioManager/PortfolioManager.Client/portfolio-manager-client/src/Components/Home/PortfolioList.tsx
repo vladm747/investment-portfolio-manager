@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from "react";
-import {Title} from "@mui/icons-material";
 import {
     Dialog,
     DialogActions,
@@ -21,9 +20,9 @@ import {CreatePortfolioDto} from "../../DTO/CreatePortfolioDto";
 
 
 function PortfolioList() {
-    const [cookie, setCookie] = useCookies(['accessToken'])
+    const [cookie, etCookie] = useCookies(['accessToken'])
 
-    const userId = "4b5eb4ee-1f0e-41ff-b6cb-fa8c6ca29859";
+    const userId = "78f4683e-e9eb-4251-ab23-4fafdb70b9f0";
     const [portfolios, setPortfolios] = useState<PortfolioDto[]>([]);
     const [newPortfolioName, setNewPortfolioName] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -74,7 +73,7 @@ function PortfolioList() {
     return (
         <React.Fragment>
             <Button variant="outlined" color="success" onClick={() => setIsDialogOpen(true)}>
-                Create Portfolio
+                Створити портфель
             </Button>
             <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
                 <DialogTitle>Create New Portfolio</DialogTitle>
@@ -100,12 +99,12 @@ function PortfolioList() {
             <Table size="small">
                 <TableHead>
                     <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Total Entry Price</TableCell>
-                        <TableCell>Total Current Price</TableCell>
-                        <TableCell>Total Gain</TableCell>
-                        <TableCell>Total Gain%</TableCell>
-                        <TableCell>Actions</TableCell>
+                        <TableCell>Назва</TableCell>
+                        <TableCell>Загальна середня ціна входу</TableCell>
+                        <TableCell>Загальна поточна ціна</TableCell>
+                        <TableCell>Прибуток</TableCell>
+                        <TableCell>Прибуток%</TableCell>
+                        <TableCell></TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -140,14 +139,14 @@ function PortfolioList() {
                                         to="/portfolio"
                                         state={portfolio}
                                     >
-                                        View Portfolio
+                                        Переглянути портфель
                                     </Button>
                                     <Button
                                         color="error"
                                         variant="outlined"
                                         onClick={() => handleDeletePortfolio(portfolio.id)}
                                     >
-                                        Delete
+                                        Видалити
                                     </Button>
                                 </TableCell>
                             </TableRow>
