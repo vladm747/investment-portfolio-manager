@@ -34,13 +34,18 @@ const PortfolioDashboard = () => {
 
     return (
         <ThemeProvider theme={defaultTheme}>
-            <Button
-                onClick={handleNavigatePortfolioList}
-                color="info"
-                variant="outlined"
-            >
-                Back To Portfolio Dashboard
-            </Button>
+            <Grid item xs={12}>
+                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+                    <Button
+                        onClick={handleNavigatePortfolioList}
+                        color="info"
+                        variant="outlined"
+                    >
+                        До портфелів
+                    </Button>
+                </Paper>
+            </Grid>
+
             <Box sx={{ display: 'flex' }}>
                 <CssBaseline />
                 <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>

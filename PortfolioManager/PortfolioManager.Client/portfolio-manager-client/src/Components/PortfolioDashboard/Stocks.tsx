@@ -14,9 +14,7 @@ import {
 import {CreateStock, DeleteStock, GetAllStocksAsync, GetStockAsync, UpdateStockInfo} from "../../Services/StockService";
 import {getSectorText, SectorEnum} from "../../DTO/StockDto";
 import StockDto from "../../DTO/StockDto";
-import PortfolioDto from "../../DTO/PortfolioDto";
 import Button from "@mui/material/Button";
-import {Link} from "react-router-dom";
 import {useCookies} from "react-cookie";
 import TextField from "@mui/material/TextField";
 import CreateStockDto from "../../DTO/CreateStockDto";
@@ -139,15 +137,15 @@ const StocksTable: React.FC<StocksTableProps> = ({ portfolioId }) => {
                         <Button color="success" variant="outlined" onClick={handleStockUpdateClick}>Оновити ціни</Button>
                     </TableRow>
                     <TableRow>
-                        <TableCell>Sector</TableCell>
-                        <TableCell>Symbol</TableCell>
-                        <TableCell>Quantity</TableCell>
-                        <TableCell>EntryPrice</TableCell>
-                        <TableCell>CurrentPrice</TableCell>
-                        <TableCell>TotalValue</TableCell>
-                        <TableCell>Gain</TableCell>
-                        <TableCell>Gain%</TableCell>
-                        <TableCell>EntryDate</TableCell>
+                        <TableCell>Сектор</TableCell>
+                        <TableCell>Тікер</TableCell>
+                        <TableCell>Кількість</TableCell>
+                        <TableCell>Ціна входу</TableCell>
+                        <TableCell>Поточна ціна</TableCell>
+                        <TableCell>Загальна ціна</TableCell>
+                        <TableCell>Прибуток</TableCell>
+                        <TableCell>Прибуток%</TableCell>
+                        <TableCell>Дата входу</TableCell>
                         <TableCell>
                             <Button color="success" variant="outlined" onClick={() => setIsDialogOpen(true)}>Додати Акцію</Button>
                         </TableCell>
@@ -167,7 +165,7 @@ const StocksTable: React.FC<StocksTableProps> = ({ portfolioId }) => {
                                 <TableCell style={{color: stock.gain > 0 ? "green" : "red"}}>{formatNumber(stock.gainPercentage) + "%"}</TableCell>
                                 <TableCell>{new Date(stock.entryDate).toLocaleDateString()}</TableCell>
                                 <TableCell>
-                                    <Button color="error" variant="outlined" onClick={handleDeleteStock(stock.id ?? 0)} >Delete</Button>
+                                    <Button color="error" variant="outlined" onClick={handleDeleteStock(stock.id ?? 0)} >Видалити</Button>
                                 </TableCell>
                             </TableRow>
                         ))

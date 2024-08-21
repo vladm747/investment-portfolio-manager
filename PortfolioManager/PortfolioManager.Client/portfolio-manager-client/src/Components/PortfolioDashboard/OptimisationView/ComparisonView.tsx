@@ -4,6 +4,7 @@ import {useCookies} from "react-cookie";
 import {GetOptimisationData} from "../../../Services/StatisticService";
 import {Link, useParams} from "react-router-dom";
 import Button from "@mui/material/Button";
+import Grid from "@mui/material/Grid";
 
 interface ComparisonViewModel {
     metricName: string;
@@ -79,16 +80,20 @@ const ComparisonView: React.FC = () => {
 
     return (
         <Container>
-            <Button
-                onClick={() => window.history.back()}
-                color="info"
-                variant="outlined"
-            >
-                Back To Portfolio Dashboard
-            </Button>
+            <Grid item xs={12}>
+                <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+                    <Button
+                        onClick={() => window.history.back()}
+                        color="info"
+                        variant="outlined"
+                    >
+                        Повернутись до огляду портфеля
+                    </Button>
+                </Paper>
+            </Grid>
 
             <Typography variant="h4" component="h1" gutterBottom>
-                Portfolio Comparison
+                Порівняння портфельних стратегій
             </Typography>
 
             <Typography variant="h6" component="h2" gutterBottom>
