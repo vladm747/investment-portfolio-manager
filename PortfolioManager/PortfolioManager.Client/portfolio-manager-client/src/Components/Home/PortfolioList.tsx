@@ -20,7 +20,7 @@ import {CreatePortfolioDto} from "../../DTO/CreatePortfolioDto";
 
 
 function PortfolioList() {
-    const [cookie, setCookie] = useCookies(['accessToken'])
+    const [cookie, etCookie] = useCookies(['accessToken'])
 
     const userId = "78f4683e-e9eb-4251-ab23-4fafdb70b9f0";
     const [portfolios, setPortfolios] = useState<PortfolioDto[]>([]);
