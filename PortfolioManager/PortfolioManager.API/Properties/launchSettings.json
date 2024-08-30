@@ -16,7 +16,10 @@
       "launchUrl": "swagger",
       "applicationUrl": "http://localhost:5050",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_ISSUER": "https://localhost:44344",
+        "JWT_SECRET": "TheStrongestSecretEverMaderfjhfgjghkghjkfjkhjk",
+        "JWT_EXPIRES": "1"
       }
     },
     "https": {
@@ -26,7 +29,10 @@
       "launchUrl": "swagger",
       "applicationUrl": "https://localhost:44344;",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_ISSUER": "https://localhost:44344",
+        "JWT_SECRET": "TheStrongestSecretEverMaderfjhfgjghkghjkfjkhjk",
+        "JWT_EXPIRES": "1"
       }
     },
     "IIS Express": {

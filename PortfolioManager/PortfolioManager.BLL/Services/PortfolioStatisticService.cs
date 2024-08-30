@@ -7,8 +7,6 @@ using PortfolioManager.DAL.Entities;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract.Base;
 using RestSharp;
-using YahooFinance.Client.Models;
-using static PortfolioManager.BLL.Services.PortfolioComparer;
 
 namespace PortfolioManager.BLL.Services;
 

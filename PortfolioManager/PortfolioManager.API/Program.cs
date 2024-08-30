@@ -66,7 +66,6 @@ public class Program
         #region Auth
         builder.Services.Configure<JwtSettings>(
             builder.Configuration.GetSection("Jwt"));
-        var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
         builder.Services.AddIdentity<User, IdentityRole>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -100,21 +99,15 @@ public class Program
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidIssuer = jwtSettings!.Issuer,
-                    ValidAudience = jwtSettings.Issuer,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+                    ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
+                    ValidAudience = Environment.GetEnvironmentVariable("JWT_ISSUER"),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET"))),
                     ClockSkew = TimeSpan.Zero
                 };
             });
         
-
         builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
             opt.TokenLifespan = TimeSpan.FromHours(1));
-        
-    
-
-      
-
         #endregion
         
         // Add services to the container.
@@ -151,6 +144,13 @@ public class Program
         });
 
         var app = builder.Build();
+
+        var service = (IServiceScopeFactory)app.Services.GetService(typeof(IServiceScopeFactory))!;
+
+        await using (var db = service.CreateScope().ServiceProvider.GetRequiredService<PortfolioManagerDbContext>())
+        {
+            await db.Database.MigrateAsync();
+        }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
