@@ -8,7 +8,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import {createTheme, ThemeProvider} from '@mui/material/styles';
 import {SignInAsync} from "../../Services/AuthService";
 import SignInDto  from "../../Components/SignIn/SignInDto";
 import {useNavigate} from "react-router-dom";
@@ -57,10 +57,6 @@ function SignIn() {
             email: data.get('email') as string,
             password: data.get('password') as string
         };
-        console.log({
-            email: data.get('email'),
-            password: data.get('password'),
-        });
 
         const tokens = await SignInAsync(signInDto);
 

@@ -64,13 +64,13 @@ public class TokenService: ITokenService
         
         claims.AddRange(roleClaims);
         
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.Now.AddHours(Convert.ToDouble(jwtSettings.ExpirationInHours));
+        var expires = DateTime.Now.AddHours(Convert.ToDouble(Environment.GetEnvironmentVariable("JWT_EXPIRES")));
 
         var token = new JwtSecurityToken(
-            issuer: jwtSettings.Issuer,
-            audience: jwtSettings.Issuer,
+            issuer: Environment.GetEnvironmentVariable("JWT_ISSUER"),
+            audience: Environment.GetEnvironmentVariable("JWT_ISSUER"),
             claims: claims,
             expires: expires,
             signingCredentials: creds
