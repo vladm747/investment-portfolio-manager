@@ -51,13 +51,13 @@ namespace PortfolioManager.DAL.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "0079b904-7866-4767-9114-9d41120c61d9",
+                            Id = "0a1cde23-4095-47e3-b17e-5ae66c7c2cc7",
                             Name = "investor",
                             NormalizedName = "INVESTOR"
                         },
                         new
                         {
-                            Id = "ba0531e4-03ba-4067-9acb-24f620cf5c98",
+                            Id = "04c7f224-83d2-471b-981d-08b35962f91b",
                             Name = "admin",
                             NormalizedName = "ADMIN"
                         });

@@ -30,7 +30,7 @@
       "applicationUrl": "https://localhost:44344;",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "JWT_ISSUER": "https://localhost:44344",
+        "JWT_ISSUER": "my issuer",
         "JWT_SECRET": "TheStrongestSecretEverMaderfjhfgjghkghjkfjkhjk",
         "JWT_EXPIRES": "1"
       }

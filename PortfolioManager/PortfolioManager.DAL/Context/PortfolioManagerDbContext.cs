@@ -52,7 +52,6 @@ public class PortfolioManagerDbContext: IdentityDbContext<User>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         //This may not work one day
-        //optionsBuilder.UseSqlServer(_connectionString);
-        optionsBuilder.UseSqlServer("Server=.;Database=PortfolioManagerDb;Trusted_Connection=True;TrustServerCertificate=true");
+        optionsBuilder.UseSqlServer(_connectionString);
     }
 }
