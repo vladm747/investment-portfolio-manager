@@ -33,7 +33,7 @@ public class Program
             options.UseSqlServer(builder.Configuration.GetConnectionString("PortfolioManagerDb")));
 
         builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
-        
+
         builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         builder.Services.AddScoped<IStockSymbolRepository, StockSymbolRepository>();
         builder.Services.AddScoped<IPortfolioStatisticForOptRepository, PortfolioStatisticForOptRepository>();
@@ -51,15 +51,14 @@ public class Program
             options.AddPolicy(name: "AllowAllOrigins",
                 builder =>
                 {
-                    //TODO: Change origins to production
-                    var origins = new string[2]{"https://localhost:44344", "http://localhost:3000"};
+                    var origins = new string[2] { "https://portfoliomanagerapi.azurewebsites.net", "https://portfoliomanagerclient.azurewebsites.net" };
                     builder.WithOrigins(origins);
                     builder.AllowAnyHeader();
                     builder.AllowAnyMethod();
                     builder.AllowCredentials();
                 });
         });
-        
+
         builder.Services.AddControllers(options => options.Filters.Add<PortfolioManagerExceptionFilterAttribute>());
 
 
@@ -75,9 +74,9 @@ public class Program
             })
             .AddEntityFrameworkStores<PortfolioManagerDbContext>()
             .AddDefaultTokenProviders();
-        
+
         builder.Services
-            .AddAuthorization(options => 
+            .AddAuthorization(options =>
                 options.AddPolicy("ElevatedRights", policy =>
                     policy.RequireRole("investor", "admin")))
             .AddAuthentication(options =>
@@ -86,7 +85,9 @@ public class Program
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddCookie(options => { options.LoginPath = "api/auth/signin/"; 
+            .AddCookie(options =>
+            {
+                options.LoginPath = "api/auth/signin/";
                 options.Cookie.SameSite = SameSiteMode.None; // Important for cross-origin cookies
             })
             .AddGoogle(options =>
@@ -105,11 +106,11 @@ public class Program
                     ClockSkew = TimeSpan.Zero
                 };
             });
-        
+
         builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
             opt.TokenLifespan = TimeSpan.FromHours(1));
         #endregion
-        
+
         // Add services to the container.
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(c =>
@@ -155,14 +156,14 @@ public class Program
         // Configure the HTTP request pipeline.
         // if (app.Environment.IsDevelopment())
         // {
-            app.UseSwagger();
-            app.UseSwaggerUI();
+        app.UseSwagger();
+        app.UseSwaggerUI();
         // }
         app.UseHttpsRedirection();
+        app.UseCors("AllowAllOrigins");
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
-        app.UseCors("AllowAllOrigins");
         await app.RunAsync();
     }
 }

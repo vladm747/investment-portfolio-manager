@@ -6,7 +6,7 @@ import { useCookies } from "react-cookie";
 
 
 const api = axios.create({
-    baseURL: `${process.env.API_URL}`, // Replace with your backend URL
+    baseURL: `${process.env.REACT_APP_URL}`, // Replace with your backend URL
 });
 
 export const SignUpAsync = async (signUpDto: SignUpDto) => {

@@ -4,7 +4,7 @@ import { useCookies } from "react-cookie";
 import CreateStockDto from "../DTO/CreateStockDto";
 
 const api = axios.create({
-    baseURL: `${process.env.API_URL}`, // Replace with your backend URL
+    baseURL: `${process.env.REACT_APP_URL}`, // Replace with your backend URL
     timeout: 10000000
 });
 

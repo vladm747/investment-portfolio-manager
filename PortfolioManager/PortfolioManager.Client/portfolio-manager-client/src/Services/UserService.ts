@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { UserDto } from "../Components/SignIn/UserDto";
-import { useCookies } from "react-cookie";
+// import { UserDto } from "../Components/SignIn/UserDto";
+// import { useCookies } from "react-cookie";
 
-const [cookie, setCookie] = useCookies(['accessToken'])
+// const [cookie, setCookie] = useCookies(['accessToken'])
 
 const api = axios.create({
-    baseURL: `${process.env.API_URL}`, // Replace with your backend URL
+    baseURL: `${process.env.REACT_APP_URL}`, // Replace with your backend URL
 });
 
 export const GetCurrentUser = async (token: string) => {
