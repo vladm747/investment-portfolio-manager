@@ -36,8 +36,8 @@ function SignUp() {
 
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const form = event.currentTarget;
+    event.preventDefault();
+    const form = event.currentTarget;
         const formDataObj: Partial<SignUpDto> = {};
         const formData = new FormData(form);
 

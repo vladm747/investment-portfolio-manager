@@ -1,10 +1,12 @@
 import axios from 'axios';
-import {SignUpDto} from "../Components/SignUp/SignUpDto";
+import { SignUpDto } from "../Components/SignUp/SignUpDto";
 import SignInDto from "../Components/SignIn/SignInDto";
-import {useCookies} from "react-cookie";
+import { useCookies } from "react-cookie";
+
+
 
 const api = axios.create({
-    baseURL: 'https://localhost:44344/api/', // Replace with your backend URL
+    baseURL: `${process.env.API_URL}`, // Replace with your backend URL
 });
 
 export const SignUpAsync = async (signUpDto: SignUpDto) => {
@@ -55,7 +57,7 @@ export const SignOutAsync = async () => {
 
 export const GetCurrentUserAsync = async (token: string) => {
     try {
-        const response = await api.get('user/me',{
+        const response = await api.get('user/me', {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
