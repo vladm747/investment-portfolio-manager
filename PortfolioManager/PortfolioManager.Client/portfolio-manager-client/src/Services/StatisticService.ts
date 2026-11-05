@@ -1,46 +1,14 @@
-import axios from 'axios';
+import { http } from "./http";
 
-const api = axios.create({
-    baseURL: `${process.env.REACT_APP_URL}`, // Replace with your backend URL
-    timeout: 100000
-});
+// The optimisation downloads years of prices in the Python service, so allow it time.
+const STATISTICS_TIMEOUT_MS = 100000;
 
-export const GetOptimisationData = async (token: string, portfolioId: number) => {
-    try {
-        const response = await api.get('opt/' + portfolioId, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        }).then((response) => {
-            return response;
+export const GetOptimisationData = async (portfolioId: number) => {
+    const response = await http.get('statistics/opt/' + portfolioId, { timeout: STATISTICS_TIMEOUT_MS });
+    return response.data;
+};
 
-        }).catch((error) => {
-            throw error;
-        });
-
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching data', error);
-        throw error;
-    }
-}
-
-export const GetGrowthStatsData = async (token: string, portfolioId: number) => {
-    try {
-        const response = await api.get('growth/' + portfolioId, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        }).then((response) => {
-            return response;
-
-        }).catch((error) => {
-            throw error;
-        });
-
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching data', error);
-        throw error;
-    }
-}
+export const GetGrowthStatsData = async (portfolioId: number) => {
+    const response = await http.get('statistics/growth/' + portfolioId, { timeout: STATISTICS_TIMEOUT_MS });
+    return response.data;
+};

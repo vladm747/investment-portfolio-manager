@@ -1,8 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import PortfolioDto from '../../DTO/PortfolioDto';
-import {GetGrowthStatsData, GetOptimisationData} from "../../Services/StatisticService";
-import {useCookies} from "react-cookie";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {GetGrowthStatsData} from "../../Services/StatisticService";
 import Container from "@mui/material/Container";
 import {CircularProgress} from "@mui/material";
 import Typography from "@mui/material/Typography"; // Adjust the import path as necessary
@@ -17,7 +15,6 @@ type GrowthData = {
 };
 
 const PortfolioChart: React.FC<PortfolioChartProps> = ({ portfolioId }) => {
-    const [cookie] = useCookies(['accessToken']);
     const [data, setData]
         = useState<Array<{ date: string; value: number }>>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -26,7 +23,7 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({ portfolioId }) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const fetchedData = await GetGrowthStatsData(cookie.accessToken, Number(portfolioId));
+                const fetchedData = await GetGrowthStatsData(Number(portfolioId));
                 if (fetchedData && fetchedData.growthData) {
                     const formattedData = Object.entries(fetchedData.growthData).map(([date, value]) => ({
                         date: new Date(date).toLocaleDateString(),
@@ -41,7 +38,7 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({ portfolioId }) => {
             }
         };
         fetchData();
-    }, [cookie.accessToken, portfolioId]);
+    }, [portfolioId]);
 
     if (loading) {
         return (

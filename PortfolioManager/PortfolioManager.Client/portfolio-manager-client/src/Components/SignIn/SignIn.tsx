@@ -1,19 +1,20 @@
 import * as React from 'react';
+import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
+import Link from '@mui/material/Link';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import {createTheme, ThemeProvider} from '@mui/material/styles';
-import {SignInAsync} from "../../Services/AuthService";
-import SignInDto  from "../../Components/SignIn/SignInDto";
-import {useNavigate} from "react-router-dom";
-import {useCookies} from "react-cookie";
-import UserDto from "../../DTO/UserDto";
+import {Link as RouterLink, useLocation} from "react-router-dom";
+import {useAuth} from "../../Auth/AuthProvider";
+import {getErrorMessage} from "../../Services/errors";
 
 function Copyright(props: any) {
     return (
@@ -29,42 +30,30 @@ function Copyright(props: any) {
 const defaultTheme = createTheme();
 
 function SignIn() {
-    const navigate = useNavigate();
-    const [cookie, setCookie] = useCookies(['accessToken'])
-    const [currenUser, setCurrentUser] = React.useState<UserDto>({} as UserDto);
-
-    // const fetchCurrentUser = async () => {
-    //     const token = cookie.accessToken;
-    //     if (token) {
-    //         const response = GetCurrentUser(cookie.accessToken)
-    //         response.then((data)=>{
-    //             setCurrentUser(data);
-    //         }).catch((error) => {
-    //             console.error('SignIn. Error fetching current user', error);
-    //             throw error;
-    //         });
-    //
-    //         if(currenUser && currenUser.id != ''){
-    //             setAuthenticated(true);
-    //         }
-    //     }
-    // };
+    const { signIn } = useAuth();
+    const location = useLocation();
+    const [error, setError] = React.useState<string | null>(null);
+    const [submitting, setSubmitting] = React.useState(false);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        const signInDto: SignInDto = {
-            email: data.get('email') as string,
-            password: data.get('password') as string
-        };
+        const email = String(data.get('email') ?? '').trim();
+        const password = String(data.get('password') ?? '');
 
-        const tokens = await SignInAsync(signInDto);
+        if (!email || !password) {
+            setError('Вкажіть пошту та пароль.');
+            return;
+        }
 
-        if (tokens.accessToken && tokens.refreshToken) {
-            setCookie('accessToken', tokens.accessToken);
-
-
-            navigate('/');
+        setError(null);
+        setSubmitting(true);
+        try {
+            // On success the route guard takes the user to the page they wanted, or to the portfolio list.
+            await signIn({ email, password });
+        } catch (e) {
+            setError(getErrorMessage(e, 'Не вдалося увійти. Спробуйте ще раз.'));
+            setSubmitting(false);
         }
     };
 
@@ -100,9 +89,9 @@ function SignIn() {
                             <LockOutlinedIcon />
                         </Avatar>
                         <Typography component="h1" variant="h5">
-                            Логін
+                            Вхід
                         </Typography>
-                        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1 }}>
+                        <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
                             <TextField
                                 margin="normal"
                                 required
@@ -110,8 +99,10 @@ function SignIn() {
                                 id="email"
                                 label="Пошта"
                                 name="email"
+                                type="email"
                                 autoComplete="email"
                                 autoFocus
+                                disabled={submitting}
                             />
                             <TextField
                                 margin="normal"
@@ -122,15 +113,29 @@ function SignIn() {
                                 type="password"
                                 id="password"
                                 autoComplete="current-password"
+                                disabled={submitting}
                             />
+                            {error && (
+                                <Alert severity="error" sx={{ mt: 2 }} role="alert">
+                                    {error}
+                                </Alert>
+                            )}
                             <Button
                                 type="submit"
                                 fullWidth
                                 variant="contained"
+                                disabled={submitting}
+                                startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
                                 sx={{ mt: 3, mb: 2 }}
                             >
-                                Увійти
+                                {submitting ? 'Входимо…' : 'Увійти'}
                             </Button>
+                            <Typography variant="body2" align="center">
+                                Немає акаунта?{' '}
+                                <Link component={RouterLink} to="/sign-up" state={location.state}>
+                                    Зареєструватися
+                                </Link>
+                            </Typography>
                             <Copyright sx={{ mt: 5 }} />
                         </Box>
                     </Box>

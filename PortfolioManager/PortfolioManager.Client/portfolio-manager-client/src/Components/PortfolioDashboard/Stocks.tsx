@@ -11,11 +11,10 @@ import {
     TableHead,
     TableRow
 } from "@mui/material";
-import {CreateStock, DeleteStock, GetAllStocksAsync, GetStockAsync, UpdateStockInfo} from "../../Services/StockService";
-import {getSectorText, SectorEnum} from "../../DTO/StockDto";
+import {CreateStock, DeleteStock, GetAllStocksAsync, UpdateStockInfo} from "../../Services/StockService";
+import {getSectorText} from "../../DTO/StockDto";
 import StockDto from "../../DTO/StockDto";
 import Button from "@mui/material/Button";
-import {useCookies} from "react-cookie";
 import TextField from "@mui/material/TextField";
 import CreateStockDto from "../../DTO/CreateStockDto";
 
@@ -25,18 +24,15 @@ type StocksTableProps = {
 
 const StocksTable: React.FC<StocksTableProps> = ({ portfolioId }) => {
     const [stocks, setStocks] = useState<StockDto[]>([]);
-    const [cookie] = useCookies(['accessToken']);
     const [newStock, setNewStock] = useState({ symbol: '', quantity: 0, entryPrice: 0, entryDate: new Date() });
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const fetchData = async () => {
-        const response = GetAllStocksAsync(cookie.accessToken, portfolioId)
-        response.then((data)=>{
-            setStocks(data);
-        }).catch((error) => {
+        try {
+            setStocks(await GetAllStocksAsync(portfolioId));
+        } catch (error) {
             console.error('Stock list. Error fetching data', error);
-            throw error;
-        });
+        }
     };
 
     const handleCreateStock = async () => {
@@ -48,7 +44,7 @@ const StocksTable: React.FC<StocksTableProps> = ({ portfolioId }) => {
                 entryPrice: newStock.entryPrice,
                 entryDate: newStock.entryDate
             };
-            await CreateStock(cookie.accessToken, newStockDto);
+            await CreateStock(newStockDto);
             await fetchData();
             setNewStock({ symbol: '', quantity: 0, entryPrice: 0, entryDate: new Date() });
             setIsDialogOpen(false);
@@ -59,7 +55,7 @@ const StocksTable: React.FC<StocksTableProps> = ({ portfolioId }) => {
 
     const handleDeleteStock = (stockId: number) => async() => {
         try {
-            await DeleteStock(cookie.accessToken, stockId);
+            await DeleteStock(stockId);
             await fetchData();
         } catch (error) {
             console.error('Error deleting stock', error);
@@ -83,7 +79,11 @@ const StocksTable: React.FC<StocksTableProps> = ({ portfolioId }) => {
         return value.toFixed(2);
     }
     const handleStockUpdateClick = async () =>{
-        await UpdateStockInfo(cookie.accessToken, portfolioId)
+        try {
+            await UpdateStockInfo(portfolioId);
+        } catch (error) {
+            console.error('Error updating prices', error);
+        }
         await fetchData();
     }
     return (

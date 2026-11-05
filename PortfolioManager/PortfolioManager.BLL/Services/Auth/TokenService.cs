@@ -3,6 +3,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using PortfolioManager.BLL.Exceptions;
 using PortfolioManager.BLL.Helpers;
@@ -12,82 +14,99 @@ using PortfolioManager.DAL.Entities.Auth;
 
 namespace PortfolioManager.BLL.Services.Auth;
 
-public class TokenService: ITokenService
+public class TokenService : ITokenService
 {
     private readonly UserManager<User> _userManager;
+    private readonly JwtSettings _settings;
+    private readonly TimeProvider _time;
 
-    public TokenService(UserManager<User> userManager)
+    public TokenService(UserManager<User> userManager, IOptions<JwtSettings> settings, TimeProvider time)
     {
         _userManager = userManager;
+        _settings = settings.Value;
+        _time = time;
     }
-    
-    public async Task<IdentityResult> UpdateUserRefreshToken(User user, RefreshTokenDTO token)
-    {
-        if (user == null)
-            throw new UserNotFoundException("User Not Found");
 
-        user.RefreshToken = token.Token;
+    public AccessToken GenerateAccessToken(User user, IEnumerable<string> roles)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+
+        var now = _time.GetUtcNow().UtcDateTime;
+        var expires = now.Add(_settings.AccessTokenLifetime);
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id),
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.FullName),
+            new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
+        var token = new JwtSecurityToken(
+            issuer: _settings.Issuer,
+            audience: _settings.Issuer,
+            claims: claims,
+            notBefore: now,
+            expires: expires,
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
+
+        return new AccessToken(new JwtSecurityTokenHandler().WriteToken(token), expires);
+    }
+
+    public RefreshTokenDTO GenerateRefreshToken()
+    {
+        var now = _time.GetUtcNow().UtcDateTime;
+
+        return new RefreshTokenDTO
+        {
+            Token = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(64)),
+            Created = now,
+            Expires = now.Add(_settings.RefreshTokenLifetime)
+        };
+    }
+
+    public async Task StoreRefreshTokenAsync(User user, RefreshTokenDTO token)
+    {
+        user.RefreshToken = Hash(token.Token);
         user.TokenCreated = token.Created;
         user.TokenExpires = token.Expires;
 
+        await UpdateAsync(user);
+    }
+
+    public async Task<User?> FindUserByRefreshTokenAsync(string refreshToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return null;
+
+        var hash = Hash(refreshToken);
+        return await _userManager.Users.FirstOrDefaultAsync(user => user.RefreshToken == hash);
+    }
+
+    public async Task RevokeRefreshTokenAsync(User user)
+    {
+        user.RefreshToken = string.Empty;
+        user.TokenExpires = _time.GetUtcNow().UtcDateTime;
+
+        await UpdateAsync(user);
+    }
+
+    /// <summary>
+    /// Only a hash is stored, so a leaked database copy cannot be used to take over sessions.
+    /// The token is 512 random bits, so a fast unsalted hash is enough.
+    /// </summary>
+    private static string Hash(string token) =>
+        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    private async Task UpdateAsync(User user)
+    {
         var result = await _userManager.UpdateAsync(user);
 
         if (!result.Succeeded)
-            throw new UserTokenUpdateException("Can't update user. TokenService.UpdateUserRefreshToken");
-        
-        return result;
-    }
-
-    private List<Claim> SetUserClaims(User user)
-    {
-        var claims = new List<Claim>
-        {
-            new (JwtRegisteredClaimNames.Sub, user.Id),
-            new (ClaimTypes.Name, user.FullName),
-            new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new (ClaimTypes.NameIdentifier, user.Id)
-        };
-
-        return claims;
-    }
-
-    private IEnumerable<Claim> SetRoleClaims(IEnumerable<string> roles) =>
-        roles.Select(r => new Claim(ClaimTypes.Role, r));
-    
-    public string GenerateJwtToken(User user, IEnumerable<string> roles, JwtSettings jwtSettings)
-    {
-        if (user == null) throw new Exception($"Jwt generation not proceeded - {nameof(user)} is null");
-
-        var claims = SetUserClaims(user);
-        
-        var roleClaims = SetRoleClaims(roles);
-        
-        claims.AddRange(roleClaims);
-        
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET")));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expires = DateTime.Now.AddHours(Convert.ToDouble(Environment.GetEnvironmentVariable("JWT_EXPIRES")));
-
-        var token = new JwtSecurityToken(
-            issuer: Environment.GetEnvironmentVariable("JWT_ISSUER"),
-            audience: Environment.GetEnvironmentVariable("JWT_ISSUER"),
-            claims: claims,
-            expires: expires,
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    public RefreshTokenDTO GenerateRefreshToken(JwtSettings jwtSettings)
-    {
-        var refreshToken = new RefreshTokenDTO()
-        {
-            Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-            Expires = DateTime.Now.AddDays(7),
-            Created = DateTime.Now
-        };
-        
-        return refreshToken;
+            throw new UserTokenUpdateException(
+                "Can't update the user's refresh token: " + string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 }

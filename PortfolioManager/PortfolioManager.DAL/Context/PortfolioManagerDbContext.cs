@@ -51,7 +51,9 @@ public class PortfolioManagerDbContext: IdentityDbContext<User>
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        //This may not work one day
-        optionsBuilder.UseSqlServer(_connectionString);
+        // Only when nothing configured the context already (design-time tools); the API passes options through DI,
+        // and the tests use an in-memory provider that must not be overridden here.
+        if (!optionsBuilder.IsConfigured)
+            optionsBuilder.UseSqlServer(_connectionString);
     }
 }

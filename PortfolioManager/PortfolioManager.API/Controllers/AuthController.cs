@@ -2,66 +2,78 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using PortfolioManager.API.Models;
-using PortfolioManager.BLL.Helpers;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using PortfolioManager.BLL.Interfaces.Auth;
 using PortfolioManager.Common.DTO.Auth;
-using PortfolioManager.DAL.Entities.Auth;
 
 namespace PortfolioManager.API.Controllers;
 
+/// <summary>
+/// The client keeps the access token in memory and the refresh token in its own storage, and sends the
+/// refresh token in the body of refresh-token and sign-out. The API also sets the refresh token as an
+/// HttpOnly cookie and reads it when the body has none, so the client can switch to cookie-only
+/// sessions if it is ever served from the same site as the API.
+/// </summary>
 [Route("api/auth")]
 [ApiController]
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
-    private readonly JwtSettings _jwtSettings;
-    private readonly IAuthService _authService;
-    private readonly IRoleService _roleService;
-    private readonly IUserService _userService;
-    private readonly ITokenService _tokenService;
-    private readonly SignInManager<User> _signInManager;
-    
-    
-    public AuthController(IAuthService authService, IOptionsSnapshot<JwtSettings> jwtSettings, 
-        SignInManager<User> signInManager, IUserService userService, IRoleService roleService,
-        ITokenService tokenService)
-    {
-        _roleService = roleService;
-        _authService = authService;
-        _userService = userService;
-        _tokenService = tokenService;
-        _jwtSettings = jwtSettings.Value;
-        _signInManager = signInManager;
-    }
-    [AllowAnonymous]
-    [HttpPost("signup")]
-    public async Task<IActionResult> SignUp(SignUpDTO model)
-    {
-        var userId = await _authService.SignUp(model);
+    private const string RefreshTokenCookie = "pm_refresh_token";
+    private const string RefreshTokenCookiePath = "/api/auth";
 
-        return Ok(userId);
+    private readonly IAuthService _authService;
+
+    public AuthController(IAuthService authService)
+    {
+        _authService = authService;
+    }
+
+    [HttpPost("signup")]
+    public async Task<ActionResult<AuthResultDTO>> SignUp(SignUpDTO model)
+    {
+        var result = await _authService.SignUp(model);
+        SetRefreshTokenCookie(result);
+
+        return Ok(result);
     }
 
     [HttpPost("signin")]
-    public async Task<IActionResult> SignIn(SignInDTO model)
+    public async Task<ActionResult<AuthResultDTO>> SignIn(SignInDTO model)
     {
-        var user = await _authService.SignIn(model);
-        var roles = await _roleService.GetRoles(user);
-        var accessToken = _tokenService.GenerateJwtToken(user, roles, _jwtSettings);
-        var refreshToken = _tokenService.GenerateRefreshToken(_jwtSettings);
-        
-        SetRefreshToken(refreshToken.Token);
-        SetAccessToken(accessToken);
-        
-        var result = await _tokenService.UpdateUserRefreshToken(user, refreshToken);
-        
-        return Ok(new Tokens(){AccessToken = accessToken, RefreshToken = refreshToken.Token});
+        var result = await _authService.SignIn(model);
+        SetRefreshTokenCookie(result);
+
+        return Ok(result);
     }
-    
-    [AllowAnonymous]
+
+    /// <summary>Works without an access token: that is the whole point when the access token has expired.</summary>
+    [HttpPost("refresh-token")]
+    public async Task<ActionResult<AuthResultDTO>> RefreshToken(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequestDTO? request)
+    {
+        var result = await _authService.Refresh(GetRefreshToken(request));
+        SetRefreshTokenCookie(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>Always returns 204, even when the session had already expired.</summary>
+    [HttpPost("sign-out")]
+    public new async Task<IActionResult> SignOut(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequestDTO? request)
+    {
+        var userId = User.Identity?.IsAuthenticated == true
+            ? User.FindFirstValue(ClaimTypes.NameIdentifier)
+            : null;
+
+        await _authService.SignOut(GetRefreshToken(request), userId);
+        Response.Cookies.Delete(RefreshTokenCookie, RefreshTokenCookieOptions());
+
+        return NoContent();
+    }
+
     [HttpPost("signin-google")]
     public async Task<IActionResult> SignInGoogle()
     {
@@ -73,7 +85,6 @@ public class AuthController : ControllerBase
             });
     }
 
-    
     /// <summary>
     /// Google Login Response After Login Operation From Google Page
     /// </summary>
@@ -82,14 +93,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> GoogleResponse()
     {
         var authenticateResult = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
-        
+
         if (!authenticateResult.Succeeded)
             return BadRequest("troubles with auth result in GoogleResponce"); // TODO: Handle this better.
-        
+
         //Check if the redirection has been done via google or any other links
         if (authenticateResult.Principal.Identities.ToList()[0].AuthenticationType.ToLower() == "google")
         {
-            //check if principal value exists or not 
+            //check if principal value exists or not
             if (authenticateResult.Principal != null)
             {
                 //get google account id for any operation to be carried out on the basis of the id
@@ -109,113 +120,26 @@ public class AuthController : ControllerBase
         }
         return RedirectToAction("Index", "Portfolio");
     }
-    
-    [Authorize]
-    [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken()
-    {
-        var refreshToken = Request.Cookies["refreshToken"];
 
-        var user = _userService.GetUserById(HttpContext.User);
+    private string? GetRefreshToken(RefreshTokenRequestDTO? request) =>
+        string.IsNullOrWhiteSpace(request?.RefreshToken)
+            ? Request.Cookies[RefreshTokenCookie]
+            : request.RefreshToken;
 
-        if (!user.RefreshToken.Equals(refreshToken))
-            return Unauthorized("Invalid Refresh Token");
-        
-        if(user.TokenExpires < DateTime.Now)
-            return Unauthorized("Token expired");
-        
-        var roles = await _roleService.GetRoles(user);
+    private void SetRefreshTokenCookie(AuthResultDTO result)
+    {
+        var options = RefreshTokenCookieOptions();
+        options.Expires = result.RefreshTokenExpiresAt;
 
-        string jwtToken = _tokenService.GenerateJwtToken(user, roles, _jwtSettings);
-        var newRefreshToken = _tokenService.GenerateRefreshToken(_jwtSettings);
-        
-        SetRefreshToken(newRefreshToken.Token);
-        SetAccessToken(jwtToken);
-        
-        var result = await _tokenService.UpdateUserRefreshToken(user, newRefreshToken);
-        
-        return Ok(jwtToken);
+        Response.Cookies.Append(RefreshTokenCookie, result.RefreshToken, options);
     }
-    
-    [HttpPost("test-refresh-token")]
-    public async Task<IActionResult> TestRefreshToken([FromBody] string refreshToken)
-    {
-        var user = _userService.GetUserById(HttpContext.User);
 
-        if (!user.RefreshToken.Equals(refreshToken))
-            return Unauthorized("Invalid Refresh Token");
-        
-        if(user.TokenExpires < DateTime.Now)
-            return Unauthorized("Token expired");
-        
-        var roles = await _roleService.GetRoles(user);
-
-        string jwtToken = _tokenService.GenerateJwtToken(user, roles, _jwtSettings);
-        var newRefreshToken = _tokenService.GenerateRefreshToken(_jwtSettings);
-        
-        SetRefreshToken(newRefreshToken.Token);
-        SetAccessToken(jwtToken);
-        
-        var result = await _tokenService.UpdateUserRefreshToken(user, newRefreshToken);
-        
-        return Ok(jwtToken);
-    }
-    
-    [HttpPost("sign-out")]
-    [Authorize]
-    public new async Task<IActionResult> SignOut()
+    /// <summary>The client and the API are different sites on Azure, so the cookie needs SameSite=None, which needs Secure.</summary>
+    private static CookieOptions RefreshTokenCookieOptions() => new()
     {
-        await _authService.SignOut();
-        
-        SetAccessTokenNull();
-        SetRefreshTokenNull();
-
-        return Ok();
-    }
-    
-    private void SetRefreshToken(string token)
-    {
-        var cookieOptions = new CookieOptions()
-        {
-            HttpOnly = true,
-            Expires = DateTimeOffset.Now.AddDays(7)
-        };
-        
-        Response.Cookies.Append("refreshToken", token, cookieOptions);
-    }
-    
-    private void SetAccessToken(string accessToken)
-    {
-        var cookieOptions = new CookieOptions()
-        {
-            HttpOnly = true,
-            Expires = DateTimeOffset.Now.AddHours(_jwtSettings.ExpirationInHours)
-        };
-       
-        Response.Cookies.Append("accessToken", accessToken, cookieOptions);
-    }
-    
-    private void SetAccessTokenNull()
-    {
-        var cookieOptions = new CookieOptions
-        {
-            MaxAge = TimeSpan.FromMilliseconds(1),
-            SameSite = SameSiteMode.None,
-            Secure = true
-        };
-       
-        Response.Cookies.Append("accessToken", "", cookieOptions);
-    }
-    
-    private void SetRefreshTokenNull()
-    {
-        var cookieOptions = new CookieOptions
-        {
-            MaxAge = TimeSpan.FromMilliseconds(1),
-            SameSite = SameSiteMode.None,
-            Secure = true
-        };
-        
-        Response.Cookies.Append("refreshToken", "", cookieOptions);
-    }
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.None,
+        Path = RefreshTokenCookiePath
+    };
 }

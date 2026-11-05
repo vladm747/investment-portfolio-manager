@@ -11,7 +11,9 @@ public class AutoMapperProfiles: Profile
 {
     public AutoMapperProfiles()
     {
-        CreateMap<User, UserDTO>().ReverseMap();
+        CreateMap<User, UserDTO>()
+            .ForMember(dest => dest.Roles, opt => opt.Ignore())
+            .ReverseMap();
         CreateMap<Stock, StockDTO>().ReverseMap();
         CreateMap<Portfolio, CreatePortfolioDTO>().ReverseMap();
         CreateMap<Portfolio, PortfolioDTO>().ReverseMap();

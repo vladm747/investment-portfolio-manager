@@ -10,9 +10,9 @@ namespace PortfolioManager.API.Controllers;
 public class UserController(IUserService service) : ControllerBase
 {
     [HttpGet("me")] 
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
-        var result = service.GetCurrentUser(HttpContext.User);
+        var result = await service.GetCurrentUserAsync(HttpContext.User);
             
         return Ok(result);
     }
