@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import { Container, Typography, Table, TableBody, TableCell, CircularProgress, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
-import {useCookies} from "react-cookie";
 import {GetOptimisationData} from "../../../Services/StatisticService";
 import {Link, useParams} from "react-router-dom";
 import Button from "@mui/material/Button";
@@ -25,14 +24,13 @@ interface ComparisonResult {
 
 const ComparisonView: React.FC = () => {
     const { portfolioId } = useParams<{ portfolioId: string }>();
-    const [cookie] = useCookies(['accessToken']);
     const [data, setData] = useState<ComparisonResult >();
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const fetchedData = await GetOptimisationData(cookie.accessToken, Number(portfolioId));
+                const fetchedData = await GetOptimisationData(Number(portfolioId));
                 setData(fetchedData);
                 setLoading(false);
             } catch (error) {
@@ -41,7 +39,7 @@ const ComparisonView: React.FC = () => {
             }
         };
         fetchData();
-    }, [cookie.accessToken, portfolioId]);
+    }, [portfolioId]);
 
     const getColor = (baseValue: number, optimizedValue: number, metricName: string) => {
         if (metricName === 'Максимальна просадка') {

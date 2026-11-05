@@ -20,15 +20,16 @@ public class UserService: IUserService
         _mapper = mapper;
     }
 
-    public UserDTO GetCurrentUser(ClaimsPrincipal userPrincipal)
+    public async Task<UserDTO> GetCurrentUserAsync(ClaimsPrincipal userPrincipal)
     {
-        var userId = _userManager.GetUserId(userPrincipal);
-        var user = _userManager.Users.SingleOrDefault(user => user.Id == userId);
-        
+        var user = await _userManager.GetUserAsync(userPrincipal);
+
         if (user == null)
             throw new UserNotFoundException("User Not Found");
-        
-        return _mapper.Map<User, UserDTO>(user);
+
+        var dto = _mapper.Map<User, UserDTO>(user);
+        dto.Roles = (await _userManager.GetRolesAsync(user)).ToList();
+        return dto;
     }
 
     public User GetUserById(ClaimsPrincipal userPrincipal)

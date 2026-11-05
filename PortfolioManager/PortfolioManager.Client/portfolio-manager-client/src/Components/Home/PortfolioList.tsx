@@ -14,27 +14,21 @@ import {CreatePortfolio, DeletePortfolio, GetAllPortfoliosAsync} from "../../Ser
 import PortfolioDto from "../../DTO/PortfolioDto";
 import {Link} from "react-router-dom";
 import Button from "@mui/material/Button";
-import {useCookies} from "react-cookie";
 import TextField from "@mui/material/TextField";
 import {CreatePortfolioDto} from "../../DTO/CreatePortfolioDto";
 
 
 function PortfolioList() {
-    const [cookie, etCookie] = useCookies(['accessToken'])
-
-    const userId = "78f4683e-e9eb-4251-ab23-4fafdb70b9f0";
     const [portfolios, setPortfolios] = useState<PortfolioDto[]>([]);
     const [newPortfolioName, setNewPortfolioName] = useState('');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const fetchData = async () => {
-        const response = GetAllPortfoliosAsync(cookie.accessToken, userId)
-        response.then((data)=>{
-            setPortfolios(data);
-        }).catch((error) => {
+        try {
+            setPortfolios(await GetAllPortfoliosAsync());
+        } catch (error) {
             console.error('Portfolio List. Error fetching data', error);
-            throw error;
-        });
+        }
     }
 
     useEffect(() => {
@@ -47,11 +41,10 @@ function PortfolioList() {
 
     const handleCreatePortfolio = async () => {
         try {
-            const newPortfolio = {
-                Name: newPortfolioName,
-                UserId: userId
+            const newPortfolio: CreatePortfolioDto = {
+                name: newPortfolioName
             };
-            const createdPortfolio = await CreatePortfolio(cookie.accessToken, newPortfolio);
+            await CreatePortfolio(newPortfolio);
             fetchData();
             setNewPortfolioName('');
             setIsDialogOpen(false);
@@ -62,7 +55,7 @@ function PortfolioList() {
 
     const handleDeletePortfolio = async (portfolioId: number) => {
         try {
-            await DeletePortfolio(cookie.accessToken, portfolioId);
+            await DeletePortfolio(portfolioId);
             fetchData();
         } catch (error) {
             console.error('Error deleting portfolio', error);

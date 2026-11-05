@@ -7,7 +7,7 @@ namespace PortfolioManager.BLL.Interfaces.Auth;
 
 public interface IUserService
 {
-    UserDTO GetCurrentUser(ClaimsPrincipal userPrincipal);
+    Task<UserDTO> GetCurrentUserAsync(ClaimsPrincipal userPrincipal);
     User GetUserById(ClaimsPrincipal userPrincipal); 
     Task<IEnumerable<UserDTO>> GetAllAsync();
     string GetUserId(ClaimsPrincipal userPrincipal);

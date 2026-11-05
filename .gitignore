@@ -136,6 +136,12 @@ fabric.properties
 *.wat
 *.xhtml
 
+# The React client's own HTML, CSS and JS are source files and must be committed.
+# Its node_modules and build output stay ignored by the client's own .gitignore.
+!PortfolioManager/PortfolioManager.Client/portfolio-manager-client/**/*.html
+!PortfolioManager/PortfolioManager.Client/portfolio-manager-client/**/*.css
+!PortfolioManager/PortfolioManager.Client/portfolio-manager-client/**/*.js
+
 ### WebStorm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839

@@ -1,86 +1,135 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Options;
 using PortfolioManager.BLL.Exceptions;
-using PortfolioManager.BLL.Helpers;
 using PortfolioManager.BLL.Interfaces.Auth;
 using PortfolioManager.Common.DTO.Auth;
 using PortfolioManager.DAL.Entities.Auth;
 
 namespace PortfolioManager.BLL.Services.Auth;
 
-public class AuthService: IAuthService
+public class AuthService : IAuthService
 {
-    private readonly UserManager<User> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
-    private readonly SignInManager<User> _loginManager;
-    private readonly ITokenService _tokenService;
-    private readonly JwtSettings _jwtSettings;
+    public const string DefaultRole = "investor";
+    public const string InvalidCredentialsMessage = "Невірна пошта або пароль.";
+    public const string LockedOutMessage = "Забагато невдалих спроб входу. Спробуйте ще раз за кілька хвилин.";
+    public const string SessionExpiredMessage = "Сесія завершилась. Увійдіть знову.";
 
-    public AuthService(UserManager<User> userMenager, RoleManager<IdentityRole> roleManager, 
-        SignInManager<User> loginManager, ITokenService tokenService,
-        IOptionsSnapshot<JwtSettings> jwtSettings)
+    private readonly UserManager<User> _userManager;
+    private readonly SignInManager<User> _signInManager;
+    private readonly ITokenService _tokenService;
+    private readonly TimeProvider _time;
+
+    public AuthService(UserManager<User> userManager, SignInManager<User> signInManager,
+        ITokenService tokenService, TimeProvider time)
     {
-        _userManager = userMenager;
-        _roleManager = roleManager;
-        _loginManager = loginManager;
+        _userManager = userManager;
+        _signInManager = signInManager;
         _tokenService = tokenService;
-        _jwtSettings = jwtSettings.Value;
+        _time = time;
     }
-    
-    public async Task<string> SignUp(SignUpDTO user)
+
+    public async Task<AuthResultDTO> SignUp(SignUpDTO model)
     {
-        var refreshToken = _tokenService.GenerateRefreshToken(_jwtSettings);
-        
-        var result = await _userManager.CreateAsync(new User
+        var email = model.Email.Trim();
+        var user = new User
         {
             Id = Guid.NewGuid().ToString(),
-            FullName = user.FullName,
-            UserName = user.Email,
-            Email = user.Email,
-            RefreshToken = refreshToken.Token,
-            TokenExpires = refreshToken.Expires,
-            TokenCreated = refreshToken.Created
-        }, user.Password);
+            FullName = model.FullName.Trim(),
+            UserName = email,
+            Email = email
+        };
+
+        var created = await _userManager.CreateAsync(user, model.Password);
+        if (!created.Succeeded)
+            throw new ValidationFailedException(created.Errors.Select(e => e.Description));
+
+        try
+        {
+            var roleAdded = await _userManager.AddToRoleAsync(user, DefaultRole);
+            if (!roleAdded.Succeeded)
+                throw new InvalidOperationException(string.Join("; ", roleAdded.Errors.Select(e => e.Description)));
+        }
+        catch
+        {
+            // Don't leave behind an account without a role: the user could not use it and could not sign up again.
+            await _userManager.DeleteAsync(user);
+            throw;
+        }
+
+        return await IssueTokensAsync(user);
+    }
+
+    public async Task<AuthResultDTO> SignIn(SignInDTO model)
+    {
+        // Accounts are created with UserName = Email, and user names are unique.
+        var user = await _userManager.FindByNameAsync(model.Email.Trim());
+
+        // Same message for an unknown email and a wrong password, so the form can't be used to find accounts.
+        if (user == null)
+            throw new AuthenticationFailedException(InvalidCredentialsMessage);
+
+        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: true);
+
+        if (result.IsLockedOut)
+            throw new AuthenticationFailedException(LockedOutMessage);
 
         if (!result.Succeeded)
-        {
-            throw new Exception(string.Join(';', result.Errors.Select(x => x.Description)));
-        }
-        else
-        {
-            var userToCreate = await _userManager.FindByEmailAsync(user.Email);
-            var toCreate = userToCreate ?? throw new UserNotFoundException("Can't find user with such email");
-            var roleResult = await _userManager.AddToRoleAsync(toCreate, user.Role);
-            // Ексепшены тоже кидать хуйня - лучше юзать резалт паттерн, а ексепшены использовать в ультра крайнем случае и для них по хорошегму добавить глобальный еррор хендлер шо возвращает 500 ошибку
-            // бо ексепшены дорогие
-            
-            // var roleResult = await _userManager.AddToRoleAsync(toCreate, user.Role);
-            // var roles = await _userManager.GetRolesAsync(toCreate);
-            //
-            // if (roles.Contains("author"))
-            // {
-            //     await _blogService.CreateAsync(toCreate.Id);
-            // }
-            return userToCreate.Id;
-        }
-    }
-    
-    public async Task<User> SignIn(SignInDTO login)
-    {
-        var user = _userManager.Users.SingleOrDefault(item => item.UserName == login.Email);
+            throw new AuthenticationFailedException(InvalidCredentialsMessage);
 
-        if (user == null)
-        {
-            throw new UserNotFoundException($"User with email: '{login.Email}' is not found.");
-        }
-                
-        return await _userManager.CheckPasswordAsync(user, login.Password) ? user : throw new ArgumentException("Wrong Password");
+        return await IssueTokensAsync(user);
     }
-   
-    public async Task SignOut()
+
+    public async Task<AuthResultDTO> Refresh(string? refreshToken)
     {
-        await _loginManager.SignOutAsync();
+        var user = string.IsNullOrWhiteSpace(refreshToken)
+            ? null
+            : await _tokenService.FindUserByRefreshTokenAsync(refreshToken);
+
+        if (user == null || user.TokenExpires <= _time.GetUtcNow().UtcDateTime)
+            throw new AuthenticationFailedException(SessionExpiredMessage);
+
+        if (await _userManager.IsLockedOutAsync(user))
+            throw new AuthenticationFailedException(LockedOutMessage);
+
+        // Rotation: the token just used stops working, because IssueTokensAsync stores a new one.
+        return await IssueTokensAsync(user);
     }
-    
-    
+
+    public async Task SignOut(string? refreshToken, string? userId)
+    {
+        User? user = null;
+
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+            user = await _tokenService.FindUserByRefreshTokenAsync(refreshToken);
+
+        if (user == null && !string.IsNullOrWhiteSpace(userId))
+            user = await _userManager.FindByIdAsync(userId);
+
+        // Signing out must always succeed for the caller, even when the session is already gone.
+        if (user != null)
+            await _tokenService.RevokeRefreshTokenAsync(user);
+    }
+
+    private async Task<AuthResultDTO> IssueTokensAsync(User user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+        var accessToken = _tokenService.GenerateAccessToken(user, roles);
+        var refreshToken = _tokenService.GenerateRefreshToken();
+
+        await _tokenService.StoreRefreshTokenAsync(user, refreshToken);
+
+        return new AuthResultDTO
+        {
+            AccessToken = accessToken.Token,
+            AccessTokenExpiresAt = accessToken.ExpiresAt,
+            RefreshToken = refreshToken.Token,
+            RefreshTokenExpiresAt = refreshToken.Expires,
+            User = new UserDTO
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email ?? string.Empty,
+                Roles = roles.ToList()
+            }
+        };
+    }
 }

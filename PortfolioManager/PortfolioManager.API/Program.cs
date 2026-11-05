@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PortfolioManager.API.Filters;
@@ -46,13 +47,18 @@ public class Program
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
         builder.Services.AddScoped<IYahooFinanceService, YahooFinanceService>();
+        // Allowed origins can be set as Cors__Origins__0, Cors__Origins__1, ... in the App Service settings.
+        var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+                          ?? new[] { "https://portfoliomanagerapi.azurewebsites.net", "https://portfoliomanagerclient.azurewebsites.net" };
+        if (builder.Environment.IsDevelopment())
+            corsOrigins = corsOrigins.Append("http://localhost:3000").ToArray();
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy(name: "AllowAllOrigins",
                 builder =>
                 {
-                    var origins = new string[2] { "https://portfoliomanagerapi.azurewebsites.net", "https://portfoliomanagerclient.azurewebsites.net" };
-                    builder.WithOrigins(origins);
+                    builder.WithOrigins(corsOrigins);
                     builder.AllowAnyHeader();
                     builder.AllowAnyMethod();
                     builder.AllowCredentials();
@@ -63,16 +69,22 @@ public class Program
 
 
         #region Auth
-        builder.Services.Configure<JwtSettings>(
-            builder.Configuration.GetSection("Jwt"));
+        var jwtSettings = JwtSettings.FromConfiguration(builder.Configuration);
+        builder.Services.AddSingleton(Options.Create(jwtSettings));
+        builder.Services.AddSingleton(TimeProvider.System);
+
         builder.Services.AddIdentity<User, IdentityRole>(options =>
             {
                 options.Password.RequireDigit = true;
                 options.Password.RequireLowercase = true;
                 options.Password.RequireUppercase = true;
                 options.Password.RequiredLength = 6;
+                // Defaults made explicit: 5 wrong passwords lock the account for 5 minutes.
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             })
             .AddEntityFrameworkStores<PortfolioManagerDbContext>()
+            .AddErrorDescriber<UkrainianIdentityErrorDescriber>()
             .AddDefaultTokenProviders();
 
         builder.Services
@@ -100,9 +112,9 @@ public class Program
                 options.RequireHttpsMetadata = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
-                    ValidAudience = Environment.GetEnvironmentVariable("JWT_ISSUER"),
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET"))),
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Issuer,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
                     ClockSkew = TimeSpan.Zero
                 };
             });

@@ -1,17 +1,21 @@
 import * as React from 'react';
+import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 import CssBaseline from '@mui/material/CssBaseline';
 import TextField from '@mui/material/TextField';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
+import Link from '@mui/material/Link';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import {SignUpAsync} from "../../Services/AuthService";
-import {SignUpDto} from "./SignUpDto";
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
+import {useAuth} from "../../Auth/AuthProvider";
+import {getErrorMessages} from "../../Services/errors";
+
 function Copyright(props: any) {
     return (
         <Typography variant="body2" color="text.secondary" align="center" {...props}>
@@ -25,36 +29,44 @@ function Copyright(props: any) {
 // TODO remove, this demo shouldn't need to reset the theme.
 const defaultTheme = createTheme();
 
-function SignUp() {
-    const [isSignedUp, setIsSignedUp] = React.useState<boolean>(false);
-    // const [formData, setFormData] = React.useState<SignUpDto>({
-    //     fullName: '',
-    //     email: '',
-    //     password: '',
-    //     role: ''
-    // });
+// Must match the server: Identity password options in Program.cs and User.FullName's length.
+const PASSWORD_HINT = 'Щонайменше 6 символів: велика й мала латинські літери, цифра та спецсимвол.';
+const MAX_FULL_NAME_LENGTH = 50;
 
+function SignUp() {
+    const { signUp } = useAuth();
+    const location = useLocation();
+    const [errors, setErrors] = React.useState<string[]>([]);
+    const [submitting, setSubmitting] = React.useState(false);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-        const formDataObj: Partial<SignUpDto> = {};
-        const formData = new FormData(form);
+        event.preventDefault();
+        const data = new FormData(event.currentTarget);
+        const firstName = String(data.get('firstName') ?? '').trim();
+        const lastName = String(data.get('lastName') ?? '').trim();
+        const email = String(data.get('email') ?? '').trim();
+        const password = String(data.get('password') ?? '');
 
-        console.log({
-            email: formData.get('email'),
-            password: formData.get('password'),
-        });
+        if (!firstName || !lastName || !email || !password) {
+            setErrors(['Заповніть усі поля.']);
+            return;
+        }
 
-        formData.forEach((value, key) => {
-            formDataObj[key as keyof SignUpDto] = value as string;
-        });
-        formDataObj.role = 'investor';
-        const userId = await SignUpAsync(formDataObj as SignUpDto);
+        const fullName = `${firstName} ${lastName}`;
+        if (fullName.length > MAX_FULL_NAME_LENGTH) {
+            setErrors([`Ім'я та прізвище разом мають бути не довші за ${MAX_FULL_NAME_LENGTH} символів.`]);
+            return;
+        }
 
-        setIsSignedUp(userId.length == 36);
-
-
+        setErrors([]);
+        setSubmitting(true);
+        try {
+            // The new account is signed in straight away; the route guard then opens the portfolio list.
+            await signUp({ fullName, email, password });
+        } catch (e) {
+            setErrors(getErrorMessages(e, 'Не вдалося зареєструватися. Спробуйте ще раз.'));
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -86,6 +98,7 @@ function SignUp() {
                                     id="firstName"
                                     label="Ім'я"
                                     autoFocus
+                                    disabled={submitting}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -96,6 +109,7 @@ function SignUp() {
                                     label="Прізвище"
                                     name="lastName"
                                     autoComplete="family-name"
+                                    disabled={submitting}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -105,7 +119,9 @@ function SignUp() {
                                     id="email"
                                     label="Пошта"
                                     name="email"
+                                    type="email"
                                     autoComplete="email"
+                                    disabled={submitting}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -117,27 +133,36 @@ function SignUp() {
                                     type="password"
                                     id="password"
                                     autoComplete="new-password"
+                                    helperText={PASSWORD_HINT}
+                                    disabled={submitting}
                                 />
                             </Grid>
                         </Grid>
+                        {errors.length > 0 && (
+                            <Alert severity="error" sx={{ mt: 2 }} role="alert">
+                                {errors.length === 1 ? errors[0] : (
+                                    <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                        {errors.map((message) => <li key={message}>{message}</li>)}
+                                    </Box>
+                                )}
+                            </Alert>
+                        )}
                         <Button
                             type="submit"
                             fullWidth
                             variant="contained"
+                            disabled={submitting}
+                            startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
                             sx={{ mt: 3, mb: 2 }}
                         >
-                            Зареєструватись
+                            {submitting ? 'Реєструємо…' : 'Зареєструватись'}
                         </Button>
-
-                        {isSignedUp && (
-                            <Box>
-                                <Typography variant="body2" color="text.secondary" align="center">
-                                    {'You have successfully signed up! Login to continue.'}
-                                </Typography>
-                                <Button color="inherit" component={RouterLink} to="/login">Login</Button>
-                            </Box>
-                        )}
-
+                        <Typography variant="body2" align="center">
+                            Вже маєте акаунт?{' '}
+                            <Link component={RouterLink} to="/login" state={location.state}>
+                                Увійти
+                            </Link>
+                        </Typography>
                     </Box>
                 </Box>
                 <Copyright sx={{ mt: 5 }} />
