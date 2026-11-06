@@ -1,3 +1,5 @@
+import { sectorName } from '../Domain/sectors';
+
 export default interface StockDto {
     id: number;
     symbol: string;
@@ -14,34 +16,8 @@ export default interface StockDto {
     portfolioId: number;
 }
 
-export const getSectorText = (sector: number): string => {
-    switch (sector) {
-        case SectorEnum.Technology:
-            return "Technology";
-        case SectorEnum.FinancialServices:
-            return "Financial Services";
-        case SectorEnum.Healthcare:
-            return "Healthcare";
-        case SectorEnum.ConsumerCyclical:
-            return "Consumer Cyclical";
-        case SectorEnum.Industrial:
-            return "Industrial";
-        case SectorEnum.CommunicationServices:
-            return "Communication Services";
-        case SectorEnum.ConsumerDefensive:
-            return "Consumer Defensive";
-        case SectorEnum.Energy:
-            return "Energy";
-        case SectorEnum.BasicMaterials:
-            return "Basic Materials";
-        case SectorEnum.RealEstate:
-            return "Real Estate";
-        case SectorEnum.Utilities:
-            return "Utilities";
-        default:
-            return "Unknown";
-    }
-}
+/** The sector's name in Ukrainian (see Domain/sectors.ts). */
+export const getSectorText = (sector: number): string => sectorName(sector);
 
 export enum SectorEnum {
     Technology = 0,
