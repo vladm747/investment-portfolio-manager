@@ -1,39 +1,23 @@
 import * as React from 'react';
 import Alert from '@mui/material/Alert';
-import Avatar from '@mui/material/Avatar';
+import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
-import CssBaseline from '@mui/material/CssBaseline';
-import TextField from '@mui/material/TextField';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import TextField from '@mui/material/TextField';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import {useAuth} from "../../Auth/AuthProvider";
 import {getErrorMessages} from "../../Services/errors";
-
-function Copyright(props: any) {
-    return (
-        <Typography variant="body2" color="text.secondary" align="center" {...props}>
-            {'Copyright © '}
-            {new Date().getFullYear()}
-            {'.'}
-        </Typography>
-    );
-}
-
-// TODO remove, this demo shouldn't need to reset the theme.
-const defaultTheme = createTheme();
+import {usePageTitle} from "../../Hooks/usePageTitle";
+import AuthLayout from "../Layout/AuthLayout";
+import PasswordField from "../Shared/PasswordField";
 
 // Must match the server: Identity password options in Program.cs and User.FullName's length.
 const PASSWORD_HINT = 'Щонайменше 6 символів: велика й мала латинські літери, цифра та спецсимвол.';
 const MAX_FULL_NAME_LENGTH = 50;
 
 function SignUp() {
+    usePageTitle('Реєстрація');
     const { signUp } = useAuth();
     const location = useLocation();
     const [errors, setErrors] = React.useState<string[]>([]);
@@ -70,104 +54,81 @@ function SignUp() {
     };
 
     return (
-        <ThemeProvider theme={defaultTheme}>
-            <Container component="main" maxWidth="xs">
-                <CssBaseline />
-                <Box
-                    sx={{
-                        marginTop: 8,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                    }}
-                >
-                    <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-                        <LockOutlinedIcon />
-                    </Avatar>
-                    <Typography component="h1" variant="h5">
-                        Реєстрація
-                    </Typography>
-                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    autoComplete="given-name"
-                                    name="firstName"
-                                    required
-                                    fullWidth
-                                    id="firstName"
-                                    label="Ім'я"
-                                    autoFocus
-                                    disabled={submitting}
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    id="lastName"
-                                    label="Прізвище"
-                                    name="lastName"
-                                    autoComplete="family-name"
-                                    disabled={submitting}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    id="email"
-                                    label="Пошта"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    disabled={submitting}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    name="password"
-                                    label="Пароль"
-                                    type="password"
-                                    id="password"
-                                    autoComplete="new-password"
-                                    helperText={PASSWORD_HINT}
-                                    disabled={submitting}
-                                />
-                            </Grid>
-                        </Grid>
-                        {errors.length > 0 && (
-                            <Alert severity="error" sx={{ mt: 2 }} role="alert">
-                                {errors.length === 1 ? errors[0] : (
-                                    <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                                        {errors.map((message) => <li key={message}>{message}</li>)}
-                                    </Box>
-                                )}
-                            </Alert>
-                        )}
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            disabled={submitting}
-                            startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
-                            sx={{ mt: 3, mb: 2 }}
-                        >
-                            {submitting ? 'Реєструємо…' : 'Зареєструватись'}
-                        </Button>
-                        <Typography variant="body2" align="center">
-                            Вже маєте акаунт?{' '}
-                            <Link component={RouterLink} to="/login" state={location.state}>
-                                Увійти
-                            </Link>
-                        </Typography>
-                    </Box>
+        <AuthLayout
+            title="Реєстрація"
+            subtitle="Створіть акаунт, щоб вести свої портфелі"
+            footer={
+                <>
+                    Вже маєте акаунт?{' '}
+                    <Link component={RouterLink} to="/login" state={location.state}>
+                        Увійти
+                    </Link>
+                </>
+            }
+        >
+            <Box component="form" noValidate onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                    <TextField
+                        autoComplete="given-name"
+                        name="firstName"
+                        required
+                        fullWidth
+                        id="firstName"
+                        label="Ім'я"
+                        autoFocus
+                        disabled={submitting}
+                    />
+                    <TextField
+                        required
+                        fullWidth
+                        id="lastName"
+                        label="Прізвище"
+                        name="lastName"
+                        autoComplete="family-name"
+                        disabled={submitting}
+                    />
                 </Box>
-                <Copyright sx={{ mt: 5 }} />
-            </Container>
-        </ThemeProvider>
+                <TextField
+                    required
+                    fullWidth
+                    id="email"
+                    label="Пошта"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    disabled={submitting}
+                />
+                <PasswordField
+                    required
+                    fullWidth
+                    name="password"
+                    label="Пароль"
+                    id="password"
+                    autoComplete="new-password"
+                    helperText={PASSWORD_HINT}
+                    disabled={submitting}
+                />
+                {errors.length > 0 && (
+                    <Alert severity="error" role="alert">
+                        {errors.length === 1 ? errors[0] : (
+                            <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                                {errors.map((message) => <li key={message}>{message}</li>)}
+                            </Box>
+                        )}
+                    </Alert>
+                )}
+                <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    disabled={submitting}
+                    startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+                    sx={{ mt: 1 }}
+                >
+                    {submitting ? 'Реєструємо…' : 'Зареєструватися'}
+                </Button>
+            </Box>
+        </AuthLayout>
     );
 }
 export default SignUp;

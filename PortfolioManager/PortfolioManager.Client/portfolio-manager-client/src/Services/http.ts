@@ -11,7 +11,7 @@ declare module 'axios' {
 
 /** The one axios instance every service uses. It adds the access token and renews it when it expires. */
 export const http = axios.create({
-    baseURL: process.env.REACT_APP_URL,
+    baseURL: import.meta.env.VITE_API_URL,
 });
 
 const AUTH_ENDPOINTS = ['auth/signin', 'auth/signup', 'auth/refresh-token', 'auth/sign-out'];

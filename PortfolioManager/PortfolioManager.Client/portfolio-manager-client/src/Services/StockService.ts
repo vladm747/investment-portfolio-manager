@@ -18,6 +18,12 @@ export const CreateStock = async (stockDto: CreateStockDto) => {
     return response.data;
 };
 
+/** Sets the number of shares of a position; the server recalculates its value and gain. */
+export const UpdateStockQuantity = async (stockId: number, quantity: number): Promise<StockDto> => {
+    const response = await http.put<StockDto>(`stock/${stockId}/${quantity}`);
+    return response.data;
+};
+
 export const DeleteStock = async (stockId: number) => {
     const response = await http.delete('stock/' + stockId);
     return response.data;
