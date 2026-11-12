@@ -4,10 +4,11 @@ namespace PortfolioManager.BLL.Interfaces.Auth;
 
 public interface IAuthService
 {
-    /// <summary>Creates an investor account and signs it in.</summary>
-    Task<AuthResultDTO> SignUp(SignUpDTO model);
-
-    Task<AuthResultDTO> SignIn(SignInDTO model);
+    /// <summary>
+    /// The only way in. Checks Google's ID token, finds the account it belongs to (or creates an investor account,
+    /// or links an old test account with the same e-mail) and signs it in.
+    /// </summary>
+    Task<AuthResultDTO> SignInWithGoogle(GoogleSignInDTO model, CancellationToken cancellationToken = default);
 
     /// <summary>Exchanges a valid refresh token for a new access token and a new refresh token.</summary>
     Task<AuthResultDTO> Refresh(string? refreshToken);

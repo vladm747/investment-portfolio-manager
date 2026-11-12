@@ -40,11 +40,44 @@ export const bodyOf = (request: InternalAxiosRequestConfig) => JSON.parse(reques
 
 export const testUser = { id: 'user-1', fullName: 'Олена Коваль', email: 'olena@example.com', roles: ['investor'] };
 
+/** An administrator: the API gives the admin role to e-mails on its Auth:AdminEmails list, next to investor. */
+export const adminUser = { id: 'admin-1', fullName: 'Адмін Тестовий', email: 'admin@example.com', roles: ['investor', 'admin'] };
+
 /** Tokens as the API would return them; n tells apart successive sign-ins and refreshes. */
-export const authResult = (n: number): AuthResultDto => ({
+export const authResult = (n: number, user: AuthResultDto['user'] = testUser): AuthResultDto => ({
     accessToken: `access-${n}`,
     accessTokenExpiresAt: '2030-01-01T00:00:00Z',
     refreshToken: `refresh-${n}`,
     refreshTokenExpiresAt: '2030-01-07T00:00:00Z',
-    user: testUser,
+    user,
 });
+
+/** What the "Sign in with Google" script puts on the page: records the config it was given and the buttons drawn. */
+export function installFakeGoogle() {
+    const buttons: { parent: HTMLElement; options: Record<string, unknown> }[] = [];
+    const initialisations: { client_id: string; callback: (response: { credential?: string }) => void }[] = [];
+
+    const id = {
+        initialize: vi.fn((config: (typeof initialisations)[number]) => {
+            initialisations.push(config);
+        }),
+        renderButton: vi.fn((parent: HTMLElement, options: object) => {
+            const drawn = options as Record<string, unknown>;
+            parent.setAttribute('data-google-theme', String(drawn.theme));
+            buttons.push({ parent, options: drawn });
+        }),
+    };
+    window.google = { accounts: { id } };
+
+    return {
+        id,
+        buttons,
+        initialisations,
+        /** The user picks an account: Google calls the callback it was initialised with. */
+        chooseAccount: (credential?: string) => initialisations[initialisations.length - 1].callback({ credential }),
+    };
+}
+
+export function removeFakeGoogle() {
+    delete window.google;
+}

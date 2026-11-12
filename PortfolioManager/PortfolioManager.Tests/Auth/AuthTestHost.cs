@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using PortfolioManager.BLL.Helpers;
 using PortfolioManager.BLL.Interfaces.Auth;
 using PortfolioManager.BLL.Services.Auth;
+using PortfolioManager.Common.DTO.Auth;
 using PortfolioManager.DAL.Context;
 using PortfolioManager.DAL.Entities.Auth;
 
@@ -22,19 +23,26 @@ public class TestClock : TimeProvider
 }
 
 /// <summary>
-/// The real AuthService, TokenService and ASP.NET Identity, configured as in Program.cs,
-/// over an in-memory database seeded with the investor and admin roles.
+/// The real AuthService, TokenService and ASP.NET Identity, configured as in Program.cs, over an in-memory database
+/// seeded with the investor and admin roles. Only Google is replaced: <see cref="Google"/> hands out the credentials
+/// that <see cref="SignInAsync"/> then signs in with.
 /// </summary>
 public sealed class AuthTestHost : IDisposable
 {
     public const string Issuer = "portfolio-manager-tests";
     public const string Secret = "test-signing-key-that-is-at-least-32-bytes-long";
+    public const string ClientId = "test-client.apps.googleusercontent.com";
+    public const string AdminEmail = "admin@example.com";
+
+    /// <summary>A person with a Google account, as the validator reports them.</summary>
+    public static GoogleIdentity Olena { get; } = new("google-sub-olena", "olena@example.com", true, "Олена Коваль");
 
     private readonly ServiceProvider _provider;
     private readonly IServiceScope _scope;
 
     public TestClock Clock { get; } = new();
     public JwtSettings Settings { get; } = new() { Issuer = Issuer, Secret = Secret };
+    public FakeGoogleTokenValidator Google { get; } = new();
 
     public AuthTestHost()
     {
@@ -46,19 +54,19 @@ public sealed class AuthTestHost : IDisposable
 
         services.AddIdentity<User, IdentityRole>(options =>
             {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                options.User.RequireUniqueEmail = true;
+                options.User.AllowedUserNameCharacters = string.Empty;
             })
-            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
-            .AddErrorDescriber<UkrainianIdentityErrorDescriber>()
-            .AddDefaultTokenProviders();
+            .AddEntityFrameworkStores<PortfolioManagerDbContext>();
 
         services.AddSingleton(Options.Create(Settings));
         services.AddSingleton<TimeProvider>(Clock);
+        services.AddSingleton(new GoogleAuthSettings
+        {
+            ClientId = ClientId,
+            AdminEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { AdminEmail }
+        });
+        services.AddSingleton<IGoogleTokenValidator>(Google);
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
 
@@ -70,6 +78,10 @@ public sealed class AuthTestHost : IDisposable
     public IAuthService Auth => _scope.ServiceProvider.GetRequiredService<IAuthService>();
     public UserManager<User> Users => _scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     public PortfolioManagerDbContext Db => _scope.ServiceProvider.GetRequiredService<PortfolioManagerDbContext>();
+
+    /// <summary>Signs this person in with a credential Google "just issued" for them.</summary>
+    public Task<AuthResultDTO> SignInAsync(GoogleIdentity identity) =>
+        Auth.SignInWithGoogle(new GoogleSignInDTO { Credential = Google.Credential(identity) });
 
     public void Dispose()
     {

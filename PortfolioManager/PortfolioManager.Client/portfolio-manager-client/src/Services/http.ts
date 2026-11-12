@@ -14,7 +14,8 @@ export const http = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
 });
 
-const AUTH_ENDPOINTS = ['auth/signin', 'auth/signup', 'auth/refresh-token', 'auth/sign-out'];
+// A 401 from these means "refused", not "access token expired": refreshing and retrying would not help.
+const AUTH_ENDPOINTS = ['auth/google', 'auth/refresh-token', 'auth/sign-out'];
 
 const isAuthEndpoint = (url?: string) =>
     !!url && AUTH_ENDPOINTS.some((endpoint) => url.endsWith(endpoint));

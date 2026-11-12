@@ -36,11 +36,11 @@ interface AuthLayoutProps {
     title: string;
     subtitle?: string;
     children: React.ReactNode;
-    /** The line under the form: a link to the other auth page. */
+    /** The line under the form, e.g. a link to the privacy policy. */
     footer: React.ReactNode;
 }
 
-/** One layout for sign-in and sign-up: a brand panel beside the form (the form alone on a phone). */
+/** The sign-in layout: a brand panel beside the form (the form alone on a phone). */
 export default function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
     return (
         <Box

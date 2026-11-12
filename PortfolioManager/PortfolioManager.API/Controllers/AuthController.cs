@@ -8,7 +8,8 @@ using PortfolioManager.Common.DTO.Auth;
 namespace PortfolioManager.API.Controllers;
 
 /// <summary>
-/// The client keeps the access token in memory and the refresh token in its own storage, and sends the
+/// There are no passwords: a user signs in with Google (see <see cref="SignInWithGoogle"/>) and gets this API's own
+/// tokens. The client keeps the access token in memory and the refresh token in its own storage, and sends the
 /// refresh token in the body of refresh-token and sign-out. The API also sets the refresh token as an
 /// HttpOnly cookie and reads it when the body has none, so the client can switch to cookie-only
 /// sessions if it is ever served from the same site as the API.
@@ -28,19 +29,14 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    [HttpPost("signup")]
-    public async Task<ActionResult<AuthResultDTO>> SignUp(SignUpDTO model)
+    /// <summary>
+    /// The only way to sign in: the body is the ID token the "Sign in with Google" button gave the browser.
+    /// A first sign-in creates the account. The answer is the same as the refresh's.
+    /// </summary>
+    [HttpPost("google")]
+    public async Task<ActionResult<AuthResultDTO>> SignInWithGoogle(GoogleSignInDTO model, CancellationToken cancellationToken)
     {
-        var result = await _authService.SignUp(model);
-        SetRefreshTokenCookie(result);
-
-        return Ok(result);
-    }
-
-    [HttpPost("signin")]
-    public async Task<ActionResult<AuthResultDTO>> SignIn(SignInDTO model)
-    {
-        var result = await _authService.SignIn(model);
+        var result = await _authService.SignInWithGoogle(model, cancellationToken);
         SetRefreshTokenCookie(result);
 
         return Ok(result);

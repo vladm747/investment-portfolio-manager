@@ -14,18 +14,37 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import Logout from '@mui/icons-material/Logout';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Auth/AuthProvider';
+import { ADMIN_ROLE, hasRole } from '../../Auth/roles';
 import ThemeToggle from '../../Theme/ThemeToggle';
 import { PRODUCT_NAME } from '../../Hooks/usePageTitle';
 import Logo from './Logo';
 
 export const CONTENT_MAX_WIDTH = 1200;
 
-function initialsOf(fullName: string, email: string): string {
+export function initialsOf(fullName: string, email: string): string {
     const letters = fullName.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]);
     return (letters.length ? letters.join('') : email.slice(0, 1)).toUpperCase();
 }
 
-/** Product name, the one section («Портфелі»), the theme switch and the account menu. */
+function NavLink({ to, active, children }: { to: string; active: boolean; children: string }) {
+    return (
+        <Button
+            component={RouterLink}
+            to={to}
+            aria-current={active ? 'page' : undefined}
+            size="small"
+            sx={(theme) => ({
+                px: 1.5,
+                color: active ? theme.app.accentText : theme.palette.text.secondary,
+                background: active ? theme.app.accentSoft : 'transparent',
+            })}
+        >
+            {children}
+        </Button>
+    );
+}
+
+/** Product name, the sections («Портфелі», and «Користувачі» for admins), the theme switch and the account menu. */
 export default function TopBar() {
     const { status, user, signOut } = useAuth();
     const navigate = useNavigate();
@@ -33,6 +52,7 @@ export default function TopBar() {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
     const inPortfolios = pathname === '/' || pathname.startsWith('/portfolios');
+    const inAdmin = pathname.startsWith('/admin');
 
     const handleSignOut = () => {
         setMenuAnchor(null);
@@ -60,19 +80,9 @@ export default function TopBar() {
 
                 {status === 'authenticated' && (
                     <Box component="nav" aria-label="Основна навігація" sx={{ display: 'flex', gap: 0.5 }}>
-                        <Button
-                            component={RouterLink}
-                            to="/"
-                            aria-current={inPortfolios ? 'page' : undefined}
-                            size="small"
-                            sx={(theme) => ({
-                                px: 1.5,
-                                color: inPortfolios ? theme.app.accentText : theme.palette.text.secondary,
-                                background: inPortfolios ? theme.app.accentSoft : 'transparent',
-                            })}
-                        >
-                            Портфелі
-                        </Button>
+                        <NavLink to="/" active={inPortfolios}>Портфелі</NavLink>
+                        {/* Only for admins. The API refuses everyone else with a 403 anyway. */}
+                        {hasRole(user, ADMIN_ROLE) && <NavLink to="/admin/users" active={inAdmin}>Користувачі</NavLink>}
                     </Box>
                 )}
 
@@ -136,10 +146,7 @@ export default function TopBar() {
                 )}
 
                 {status === 'anonymous' && (
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button component={RouterLink} to="/login" variant="outlined" size="small">Увійти</Button>
-                        <Button component={RouterLink} to="/sign-up" variant="contained" size="small" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>Реєстрація</Button>
-                    </Box>
+                    <Button component={RouterLink} to="/login" variant="outlined" size="small">Увійти</Button>
                 )}
             </Toolbar>
         </AppBar>

@@ -1,18 +1,15 @@
 import { http } from "./http";
-import { SignUpDto } from "../Components/SignUp/SignUpDto";
-import SignInDto from "../Components/SignIn/SignInDto";
 import AuthResultDto from "../DTO/AuthResultDto";
 import UserDto from "../DTO/UserDto";
 
 // withCredentials lets the browser store the API's HttpOnly refresh-token cookie where it allows it.
 
-export const SignUpAsync = async (signUpDto: SignUpDto): Promise<AuthResultDto> => {
-    const response = await http.post<AuthResultDto>('auth/signup', signUpDto, { withCredentials: true });
-    return response.data;
-};
-
-export const SignInAsync = async (signInDto: SignInDto): Promise<AuthResultDto> => {
-    const response = await http.post<AuthResultDto>('auth/signin', signInDto, { withCredentials: true });
+/**
+ * The only way to sign in. `credential` is the ID token the "Sign in with Google" button gives the page; the API
+ * checks it with Google and answers with its own tokens. The first sign-in creates the account.
+ */
+export const SignInWithGoogleAsync = async (credential: string): Promise<AuthResultDto> => {
+    const response = await http.post<AuthResultDto>('auth/google', { credential }, { withCredentials: true });
     return response.data;
 };
 

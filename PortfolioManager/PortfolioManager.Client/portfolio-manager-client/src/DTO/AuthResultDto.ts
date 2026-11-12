@@ -1,6 +1,6 @@
 import UserDto from "./UserDto";
 
-/** Returned by sign-up, sign-in and refresh. Dates are ISO strings in UTC. */
+/** Returned by the Google sign-in and by refresh. Dates are ISO strings in UTC. */
 export default interface AuthResultDto {
     accessToken: string;
     accessTokenExpiresAt: string;
