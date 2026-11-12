@@ -1,122 +1,128 @@
-﻿using AutoMapper;
+﻿using Microsoft.Extensions.Logging;
+using PortfolioManager.BLL.Exceptions;
+using PortfolioManager.BLL.Helpers;
 using PortfolioManager.BLL.Interfaces;
+using PortfolioManager.BLL.Mapping;
+using PortfolioManager.BLL.Valuation;
 using PortfolioManager.Common.DTO;
 using PortfolioManager.DAL.Entities;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract;
-using YahooFinance.Client.Interfaces;
+using PortfolioManager.MathModule.Client;
 
 namespace PortfolioManager.BLL.Services;
 
 public class StockService: IStockService
 {
     private readonly IStockRepository _repo;
-    private readonly IStockSymbolRepository _stockSymbolRepo;
-    private readonly IPortfolioService _portfolioService;
-    private readonly IMapper _mapper;
+    private readonly IPortfolioRepository _portfolioRepo;
+    private readonly IMathModuleClient _mathModule;
+    private readonly ILogger<StockService> _logger;
 
-    private readonly IYahooFinanceService _yahooFinanceService;
-    public StockService(IStockRepository stockRepository, IMapper mapper, IYahooFinanceService yahooFinanceService,
-        IStockSymbolRepository stockSymbolRepository, IPortfolioService portfolioService)
+    public StockService(IStockRepository stockRepository, IPortfolioRepository portfolioRepository,
+        IMathModuleClient mathModule, ILogger<StockService> logger)
     {
         _repo = stockRepository;
-        _yahooFinanceService = yahooFinanceService;
-        _stockSymbolRepo = stockSymbolRepository;
-        _mapper = mapper;
-        _portfolioService = portfolioService;
+        _portfolioRepo = portfolioRepository;
+        _mathModule = mathModule;
+        _logger = logger;
     }
 
-    public async Task<IEnumerable<StockDTO>> GetAllAsync(int portfolioId)
+    public async Task<IReadOnlyList<StockDTO>> GetAllAsync(string userId, int portfolioId,
+        CancellationToken cancellationToken = default)
     {
-        var stocks = await _repo.GetAllAsync(portfolioId);
+        await EnsurePortfolioIsOwnedAsync(userId, portfolioId, cancellationToken);
 
-        return _mapper.Map<IEnumerable<StockDTO>>(stocks).ToList();
+        var stocks = await _repo.GetAllAsync(portfolioId, cancellationToken);
+
+        return stocks.Select(stock => stock.ToDto()).ToList();
     }
 
-    public async Task<StockDTO> CreateAsync(int portfolioId, int quantity, string symbol, double entryPrice,
-        DateTime entryDate)
+    public async Task<StockDTO> CreateAsync(string userId, int portfolioId, CreateStockDTO request,
+        CancellationToken cancellationToken = default)
     {
-        var stock = await _stockSymbolRepo.GetBySymbol(symbol);
-        
-        if (stock == null || stock.Symbol != symbol)
-            throw new Exception("Stock symbol is invalid");
-        
-        var stockInfo = await _yahooFinanceService.GetInfoAsync(symbol);
-           if (stockInfo == null)
-                throw new Exception("Stock info not found");
-    
-        stockInfo.StockDTO.Symbol = symbol;
-        stockInfo.StockDTO.EntryDate = entryDate;
-        stockInfo.StockDTO.Quantity = quantity;
-        stockInfo.StockDTO.PortfolioId = portfolioId;
-        stockInfo.StockDTO.EntryPrice = entryPrice;
-        stockInfo.StockDTO.TotalCurrentPrice = stockInfo.StockDTO.Quantity * stockInfo.StockDTO.CurrentPrice;
-        stockInfo.StockDTO.Gain = (stockInfo.StockDTO.TotalCurrentPrice - stockInfo.StockDTO.Quantity * stockInfo.StockDTO.EntryPrice);
-        stockInfo.StockDTO.GainPercentage = (stockInfo.StockDTO.Gain /(stockInfo.StockDTO.Quantity * stockInfo.StockDTO.EntryPrice)) * 100;
-      
-        var model = _mapper.Map<Stock>(stockInfo.StockDTO);
-        var result = await _repo.CreateAsync(model);
-       
-        if (result == null)
-            throw new Exception("Stock not created");
-        
-        await _portfolioService.UpdateTotalPortfolioValue(portfolioId);
+        // Before anything else: a portfolio of somebody else must not even cost a market data request.
+        await EnsurePortfolioIsOwnedAsync(userId, portfolioId, cancellationToken);
 
-        return _mapper.Map<StockDTO>(result);
-    }
+        // The math module is the only judge of a ticker: it throws SymbolNotFoundException for an unknown one
+        // and MarketDataUnavailableException when Yahoo Finance cannot be reached. The exception filter maps both.
+        var info = await _mathModule.GetStockAsync(request.Symbol, cancellationToken);
 
-    public async Task<StockDTO> UpdateAsync(int stockId, int quantity)
-    {
-        var entity = await _repo.FindByKeyAsync(stockId);
-        
-        if (entity == null)
-            throw new InvalidOperationException("The entity you are trying to update does not exist in database!");
+        if (info.Price is not { } currentPrice)
+            throw new MarketDataUnavailableException($"Для тікера {info.Symbol} немає поточної ціни.");
 
-        entity.Quantity = quantity;
-        entity.TotalCurrentPrice = entity.Quantity * entity.CurrentPrice;
-        entity.Gain = entity.Quantity * entity.CurrentPrice - entity.Quantity * entity.EntryPrice;
-        entity.GainPercentage = (entity.Gain / (entity.Quantity * entity.EntryPrice)) * 100;
-        
-        var result = await _repo.UpdateAsync(entity);
-
-        if (result == 0)
-            throw new Exception("Stock not updated!");
-        
-        var updatedStock = await _repo.FindByKeyAsync(stockId);
-
-        return _mapper.Map<StockDTO>(updatedStock);
-    }
-
-    public async Task UpdateInfo(int portfolioId)
-    {
-        var stocks = await _repo.GetAllAsync(portfolioId);
-        
-        foreach (var stock in stocks)
+        var stock = new Stock
         {
-            var stockPriceResponseDto = _yahooFinanceService.GetPriceAsync(stock.Symbol);
-            
-            if(!stockPriceResponseDto.IsSuccess)
-                throw new Exception("Stock price not found");
-            
-            stock.CurrentPrice = stockPriceResponseDto.CurrentPrice!;
-            stock.TotalCurrentPrice = stock.Quantity * stock.CurrentPrice;
-            stock.Gain = stock.Quantity * stock.CurrentPrice - stock.Quantity * stock.EntryPrice;
-            stock.GainPercentage = (stock.Gain / (stock.Quantity * stock.EntryPrice)) * 100;
-            var result = await _repo.UpdateAsync(stock);
-            await _portfolioService.UpdateTotalPortfolioValue(portfolioId);
-        }
+            Symbol = info.Symbol,
+            Name = info.Name ?? info.Symbol,
+            Currency = info.Currency ?? string.Empty,
+            Sector = SectorMapper.FromYahoo(info.Sector),
+            CurrentPrice = Money.FromMarketPrice(currentPrice),
+            EntryDate = request.EntryDate,
+            Quantity = request.Quantity,
+            EntryPrice = Money.Round(request.EntryPrice),
+            PortfolioId = portfolioId
+        };
+
+        var created = await _repo.CreateAsync(stock, cancellationToken);
+
+        return created.ToDto();
     }
 
-    public async Task<bool> DeleteAsync(int stockId)
+    public async Task<StockDTO> UpdateAsync(string userId, int stockId, int quantity,
+        CancellationToken cancellationToken = default)
     {
-        var entity = await _repo.FindByKeyAsync(stockId);
+        var stock = await _repo.FindOwnedAsync(stockId, userId, cancellationToken)
+                    ?? throw NotFoundException.Position();
 
-        if (entity == null)
-            throw new InvalidOperationException("The entity you are trying to delete does not exist in database!");
-        
-        var stock = _mapper.Map<Stock>(entity);
-        var result = await _repo.DeleteAsync(stock);
-        await _portfolioService.UpdateTotalPortfolioValue(entity.PortfolioId);
+        stock.Quantity = quantity;
 
-        return result > 0;
-    }   
+        await _repo.UpdateAsync(stock, cancellationToken);
+
+        return stock.ToDto();
+    }
+
+    public async Task UpdatePricesAsync(string userId, int portfolioId, CancellationToken cancellationToken = default)
+    {
+        await EnsurePortfolioIsOwnedAsync(userId, portfolioId, cancellationToken);
+
+        var stocks = await _repo.GetAllAsync(portfolioId, cancellationToken);
+
+        if (stocks.Count == 0)
+            return;
+
+        // One call for the whole portfolio. Nothing is written unless every stock got a price.
+        var symbols = stocks.Select(stock => stock.Symbol).Distinct().ToList();
+        var response = await _mathModule.GetPricesAsync(symbols, cancellationToken);
+        var prices = new Dictionary<string, double>(response.Prices, StringComparer.OrdinalIgnoreCase);
+
+        var missing = symbols.Where(symbol => !prices.ContainsKey(symbol)).ToList();
+        if (missing.Count > 0)
+            throw new MarketDataUnavailableException($"Не вдалося отримати ціни для: {string.Join(", ", missing)}.");
+
+        foreach (var stock in stocks)
+            stock.CurrentPrice = Money.FromMarketPrice(prices[stock.Symbol]);
+
+        // One save for all positions: the portfolio is never left half refreshed. Values, gains and totals are not
+        // stored, so there is nothing else to recalculate.
+        await _repo.UpdateRangeAsync(stocks, cancellationToken);
+
+        _logger.LogInformation("Refreshed the prices of {Count} positions ({Symbols} tickers) in portfolio {PortfolioId}",
+            stocks.Count, symbols.Count, portfolioId);
+    }
+
+    public async Task<bool> DeleteAsync(string userId, int stockId, CancellationToken cancellationToken = default)
+    {
+        var stock = await _repo.FindOwnedAsync(stockId, userId, cancellationToken)
+                    ?? throw NotFoundException.Position();
+
+        var deleted = await _repo.DeleteAsync(stock, cancellationToken);
+
+        return deleted > 0;
+    }
+
+    private async Task EnsurePortfolioIsOwnedAsync(string userId, int portfolioId, CancellationToken cancellationToken)
+    {
+        if (!await _portfolioRepo.IsOwnedByAsync(portfolioId, userId, cancellationToken))
+            throw NotFoundException.Portfolio();
+    }
 }

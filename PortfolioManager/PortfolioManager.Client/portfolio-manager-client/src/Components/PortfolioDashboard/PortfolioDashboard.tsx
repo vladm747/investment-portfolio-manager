@@ -18,7 +18,7 @@ import { formatDate, formatMoney, formatUpdatedAt, pluralize, positionsCount } f
 import { useAsyncData } from '../../Hooks/useAsyncData';
 import { usePageTitle } from '../../Hooks/usePageTitle';
 import { GetPortfolioAsync } from '../../Services/PortfolioService';
-import { DeleteStock, GetAllStocksAsync, UpdateStockInfo } from '../../Services/StockService';
+import { DeleteStock, GetAllStocksAsync, RefreshPrices } from '../../Services/StockService';
 import { getErrorMessage } from '../../Services/errors';
 import ConfirmDialog from '../Shared/ConfirmDialog';
 import Delta from '../Shared/Delta';
@@ -100,7 +100,7 @@ function PortfolioDashboardContent({ portfolioId }: { portfolioId: number }) {
     const handleRefreshPrices = async () => {
         setRefreshingPrices(true);
         try {
-            await UpdateStockInfo(portfolioId);
+            await RefreshPrices(portfolioId);
             const now = new Date();
             setPricesUpdatedAt(portfolioId, now);
             setUpdatedAt(now);

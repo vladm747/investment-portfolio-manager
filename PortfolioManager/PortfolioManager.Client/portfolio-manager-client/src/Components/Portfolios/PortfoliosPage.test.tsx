@@ -83,7 +83,7 @@ describe('deleting a portfolio', () => {
 
         await userEvent.click(within(dialog).getByRole('button', { name: 'Видалити' }));
 
-        await waitFor(() => expect(requests.some((request) => request.method === 'delete' && request.url === 'portfolio/2')).toBe(true));
+        await waitFor(() => expect(requests.some((request) => request.method === 'delete' && request.url === 'portfolios/2')).toBe(true));
         expect(await screen.findByText('Портфель «Порожній» видалено')).toBeInTheDocument();
         // The list is loaded again.
         await waitFor(() => expect(requests.filter((request) => request.method === 'get')).toHaveLength(2));

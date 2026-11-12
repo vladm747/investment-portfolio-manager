@@ -9,7 +9,7 @@ public class StockSymbolRepository(PortfolioManagerDbContext context) : IStockSy
 {
     private readonly PortfolioManagerDbContext _context = context;
 
-    public async Task<StockSymbol> GetBySymbol(string symbol)
+    public async Task<StockSymbol?> GetBySymbol(string symbol)
     {
         return await _context.StockSymbols.Where(item => item.Symbol == symbol).FirstOrDefaultAsync();
     }

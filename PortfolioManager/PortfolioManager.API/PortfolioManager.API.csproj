@@ -5,10 +5,11 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
+        <!-- Local secrets: dotnet user-secrets (see PortfolioManager/README.md). Azure reads App Service settings. -->
+        <UserSecretsId>53e36c9a-5166-4d43-a96e-2855c193c057</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.4" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.4" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.2"/>
@@ -24,9 +25,6 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
     </ItemGroup>
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    </ItemGroup>
-    <ItemGroup>
       <Content Include="..\.dockerignore">
         <Link>.dockerignore</Link>
       </Content>
@@ -35,7 +33,7 @@
     <ItemGroup>
       <ProjectReference Include="..\PortfolioManager.BLL\PortfolioManager.BLL.csproj" />
       <ProjectReference Include="..\PortfolioManager.DAL\PortfolioManager.DAL.csproj" />
-      <ProjectReference Include="..\YahooFinance.Client\YahooFinance.Client.csproj" />
+      <ProjectReference Include="..\PortfolioManager.MathModule.Client\PortfolioManager.MathModule.Client.csproj" />
     </ItemGroup>
 
 </Project>

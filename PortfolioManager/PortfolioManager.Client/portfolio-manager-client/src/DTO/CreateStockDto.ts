@@ -1,5 +1,5 @@
+/** The body of a new position. The portfolio is in the address (`portfolios/{id}/positions`), so it is not here. */
 export default interface CreateStockDto {
-    portfolioId: number;
     symbol: string;
     quantity: number;
     entryPrice: number;

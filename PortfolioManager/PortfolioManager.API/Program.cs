@@ -1,7 +1,5 @@
 using System.Text;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -11,17 +9,14 @@ using PortfolioManager.API.Filters;
 using PortfolioManager.BLL.Helpers;
 using PortfolioManager.BLL.Interfaces;
 using PortfolioManager.BLL.Interfaces.Auth;
-using PortfolioManager.BLL.Profiles;
 using PortfolioManager.BLL.Services;
 using PortfolioManager.BLL.Services.Auth;
 using PortfolioManager.DAL.Context;
 using PortfolioManager.DAL.Entities;
 using PortfolioManager.DAL.Entities.Auth;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract;
-using PortfolioManager.DAL.Infrastructure.DI.Abstract.Base;
 using PortfolioManager.DAL.Infrastructure.DI.Implementation;
-using YahooFinance.Client.Interfaces;
-using YahooFinance.Client.Services;
+using PortfolioManager.MathModule.Client;
 
 
 public class Program
@@ -30,14 +25,17 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddDbContext<PortfolioManagerDbContext>(options =>
-            options.UseSqlServer(builder.Configuration.GetConnectionString("PortfolioManagerDb")));
+        // Secrets are not in appsettings: locally they come from `dotnet user-secrets`, on Azure from the
+        // App Service settings (see PortfolioManager/README.md). Fail at startup with the setting's name.
+        var connectionString = builder.Configuration.GetConnectionString("PortfolioManagerDb");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException("ConnectionStrings:PortfolioManagerDb is not configured.");
 
-        builder.Services.AddAutoMapper(typeof(AutoMapperProfiles));
+        builder.Services.AddDbContext<PortfolioManagerDbContext>(options =>
+            options.UseSqlServer(connectionString));
 
         builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         builder.Services.AddScoped<IStockSymbolRepository, StockSymbolRepository>();
-        builder.Services.AddScoped<IPortfolioStatisticForOptRepository, PortfolioStatisticForOptRepository>();
         builder.Services.AddScoped<IStockRepository, StockRepository>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IPortfolioService, PortfolioService>();
@@ -46,7 +44,8 @@ public class Program
         builder.Services.AddScoped<ITokenService, TokenService>();
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
-        builder.Services.AddScoped<IYahooFinanceService, YahooFinanceService>();
+        // Python math service: MathModule:BaseUrl is required (startup fails without it), MathModule:ApiKey is a secret.
+        builder.Services.AddMathModuleClient(builder.Configuration);
         // Allowed origins can be set as Cors__Origins__0, Cors__Origins__1, ... in the App Service settings.
         var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
                           ?? new[] { "https://portfoliomanagerapi.azurewebsites.net", "https://portfoliomanagerclient.azurewebsites.net" };
@@ -65,7 +64,14 @@ public class Program
                 });
         });
 
-        builder.Services.AddControllers(options => options.Filters.Add<PortfolioManagerExceptionFilterAttribute>());
+        builder.Services
+            .AddControllers(options => options.Filters.Add<PortfolioManagerExceptionFilterAttribute>())
+            // Without this the JSON parser's own message ("could not be converted to System.Int32. Path: $.quantity
+            // | LineNumber: ...") ends up in the 400. ModelStateErrorResponse words it for the user instead.
+            .AddJsonOptions(options => options.AllowInputFormatterExceptionMessages = false)
+            // [ApiController] answers an invalid request with 400 by itself; this gives that 400 the same body as every other error.
+            .ConfigureApiBehaviorOptions(options =>
+                options.InvalidModelStateResponseFactory = ModelStateErrorResponse.Create);
 
 
         #region Auth
@@ -88,24 +94,15 @@ public class Program
             .AddDefaultTokenProviders();
 
         builder.Services
-            .AddAuthorization(options =>
-                options.AddPolicy("ElevatedRights", policy =>
-                    policy.RequireRole("investor", "admin")))
+            // Roles are checked where they matter, with [Authorize(Roles = ...)] on the action
+            // (see UserController.GetAllUsersAsync). The unused "ElevatedRights" policy is gone.
+            .AddAuthorization()
+            // JWT bearer is the only way in. There is no cookie or external (Google) sign-in scheme.
             .AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddCookie(options =>
-            {
-                options.LoginPath = "api/auth/signin/";
-                options.Cookie.SameSite = SameSiteMode.None; // Important for cross-origin cookies
-            })
-            .AddGoogle(options =>
-            {
-                options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
             })
             .AddJwtBearer(options =>
             {
@@ -123,38 +120,42 @@ public class Program
             opt.TokenLifespan = TimeSpan.FromHours(1));
         #endregion
 
-        // Add services to the container.
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(c =>
+        // Swagger describes every route and lets anyone try them, so it exists only while developing:
+        // it is not even registered in any other environment.
+        if (builder.Environment.IsDevelopment())
         {
-            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
             {
-                Description = "JWT containing userid claim",
-                Name = "Authorization",
-                In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-            });
-            var security =
-                new OpenApiSecurityRequirement
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
+                    Description = "JWT containing userid claim",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                });
+                var security =
+                    new OpenApiSecurityRequirement
                     {
-                        new OpenApiSecurityScheme
                         {
-                            Reference = new OpenApiReference
+                            new OpenApiSecurityScheme
                             {
-                                Id = "Bearer",
-                                Type = ReferenceType.SecurityScheme
+                                Reference = new OpenApiReference
+                                {
+                                    Id = "Bearer",
+                                    Type = ReferenceType.SecurityScheme
+                                },
+                                Scheme = "oauth2",
+                                Name = "Bearer",
+                                In = ParameterLocation.Header,
+                                UnresolvedReference = true
                             },
-                            Scheme = "oauth2",
-                            Name = "Bearer",
-                            In = ParameterLocation.Header,
-                            UnresolvedReference = true
-                        },
-                        new List<string>()
-                    }
-                };
-            c.AddSecurityRequirement(security);
-        });
+                            new List<string>()
+                        }
+                    };
+                c.AddSecurityRequirement(security);
+            });
+        }
 
         var app = builder.Build();
 
@@ -162,15 +163,17 @@ public class Program
 
         await using (var db = service.CreateScope().ServiceProvider.GetRequiredService<PortfolioManagerDbContext>())
         {
-            await db.Database.MigrateAsync();
+            // SQL Server in every real run. The in-memory database the HTTP tests swap in has no migrations.
+            if (db.Database.IsRelational())
+                await db.Database.MigrateAsync();
         }
 
         // Configure the HTTP request pipeline.
-        // if (app.Environment.IsDevelopment())
-        // {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-        // }
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
         app.UseHttpsRedirection();
         app.UseCors("AllowAllOrigins");
         app.UseAuthentication();

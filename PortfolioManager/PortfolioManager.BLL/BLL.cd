@@ -56,9 +56,5 @@
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Class>
-  <Class Name="PortfolioManager.Common.DTO.MetricsDTO">
-    <Position X="13" Y="4.75" Width="2" />
-    <TypeIdentifier />
-  </Class>
   <Font Name="Segoe UI" Size="9" />
 </ClassDiagram>

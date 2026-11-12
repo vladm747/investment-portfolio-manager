@@ -25,9 +25,9 @@ function serve({ stocks = [aapl, msft, jnj], handle }: Options = {}) {
         const method = request.method ?? 'get';
         const custom = handle?.(url, method);
         if (custom) return custom;
-        if (url === 'portfolio/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
-        if (url === 'stock/5') return { status: 200, data: stocks };
-        if (url === 'statistics/growth/5') return { status: 200, data: growth };
+        if (url === 'portfolios/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
+        if (url === 'portfolios/5/positions') return { status: 200, data: stocks };
+        if (url === 'portfolios/5/growth') return { status: 200, data: growth };
         return { status: 200, data: {} };
     });
 }
@@ -78,7 +78,7 @@ test('an empty portfolio says so, and offers nothing that needs positions', asyn
     expect(screen.getByRole('link', { name: 'Оптимізувати' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('button', { name: 'Оновити ціни' })).toBeDisabled();
     // The math service would reject an empty portfolio, so the chart is not even requested.
-    expect(requests.some((request) => request.url === 'statistics/growth/5')).toBe(false);
+    expect(requests.some((request) => request.url === 'portfolios/5/growth')).toBe(false);
 });
 
 test('positions are sorted by value at first and by any column on request', async () => {
@@ -124,10 +124,12 @@ describe('changing the quantity', () => {
         await userEvent.click(within(dialog).getByRole('button', { name: 'Зберегти' }));
 
         expect(await screen.findByText('Кількість AAPL змінено на 30')).toBeInTheDocument();
-        expect(requests.some((request) => request.method === 'put' && request.url === 'stock/1/30')).toBe(true);
-        await waitFor(() => expect(requests.filter((request) => request.url === 'stock/5')).toHaveLength(2));
-        await waitFor(() => expect(requests.filter((request) => request.url === 'portfolio/5')).toHaveLength(2));
-        await waitFor(() => expect(requests.filter((request) => request.url === 'statistics/growth/5')).toHaveLength(2));
+        const put = requests.find((request) => request.method === 'put' && request.url === 'positions/1');
+        expect(put).toBeDefined();
+        expect(JSON.parse(put!.data)).toEqual({ quantity: 30 });
+        await waitFor(() => expect(requests.filter((request) => request.url === 'portfolios/5/positions')).toHaveLength(2));
+        await waitFor(() => expect(requests.filter((request) => request.url === 'portfolios/5')).toHaveLength(2));
+        await waitFor(() => expect(requests.filter((request) => request.url === 'portfolios/5/growth')).toHaveLength(2));
     });
 
     test('a refusal from the server stays in the dialog', async () => {
@@ -157,7 +159,7 @@ test('a position is deleted only after confirmation', async () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Видалити' }));
 
     expect(await screen.findByText('Позицію JNJ видалено')).toBeInTheDocument();
-    expect(requests.some((request) => request.method === 'delete' && request.url === 'stock/3')).toBe(true);
+    expect(requests.some((request) => request.method === 'delete' && request.url === 'positions/3')).toBe(true);
 });
 
 describe('refreshing prices', () => {
@@ -168,13 +170,13 @@ describe('refreshing prices', () => {
         await userEvent.click(await screen.findByRole('button', { name: 'Оновити ціни' }));
 
         expect(await screen.findByText('Ціни оновлено')).toBeInTheDocument();
-        expect(requests.some((request) => request.url === 'stock/info/5')).toBe(true);
+        expect(requests.some((request) => request.method === 'post' && request.url === 'portfolios/5/prices/refresh')).toBe(true);
         expect(await screen.findByText(/Ціни оновлено сьогодні о/)).toBeInTheDocument();
-        await waitFor(() => expect(requests.filter((request) => request.url === 'stock/5')).toHaveLength(2));
+        await waitFor(() => expect(requests.filter((request) => request.url === 'portfolios/5/positions')).toHaveLength(2));
     });
 
     test('a failure is reported and nothing else changes', async () => {
-        serve({ handle: (url) => (url === 'stock/info/5' ? { status: 500 } : undefined) });
+        serve({ handle: (url) => (url === 'portfolios/5/prices/refresh' ? { status: 500 } : undefined) });
         renderDashboard();
 
         await userEvent.click(await screen.findByRole('button', { name: 'Оновити ціни' }));
@@ -223,8 +225,10 @@ describe('adding a position', () => {
 
         expect(await screen.findByText('Позицію NVDA додано')).toBeInTheDocument();
         const post = requests.find((request) => request.method === 'post')!;
-        expect(JSON.parse(post.data)).toEqual({ portfolioId: 5, symbol: 'NVDA', quantity: 15, entryPrice: 172.4, entryDate: '2024-03-12T00:00:00' });
-        await waitFor(() => expect(requests.filter((request) => request.url === 'stock/5')).toHaveLength(2));
+        // The portfolio is in the address; the body holds only the position.
+        expect(post.url).toBe('portfolios/5/positions');
+        expect(JSON.parse(post.data)).toEqual({ symbol: 'NVDA', quantity: 15, entryPrice: 172.4, entryDate: '2024-03-12T00:00:00' });
+        await waitFor(() => expect(requests.filter((request) => request.method === 'get' && request.url === 'portfolios/5/positions')).toHaveLength(2));
     });
 
     test('when the server refuses the ticker the message appears in the dialog', async () => {

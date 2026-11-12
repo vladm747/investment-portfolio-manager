@@ -1,36 +1,37 @@
 ﻿using PortfolioManager.BLL.Models;
-using PortfolioManager.Common.DTO;
+using PortfolioManager.MathModule.Client.Contract;
 
 namespace PortfolioManager.BLL.Services;
 
 public static class PortfolioComparer
-    {
-        public static ComparisonResult Compare(MetricsDTO strategyBase, MetricsDTO strategyOptimized)
+{
+    private sealed record Metric(string Key, string Name, Func<MetricSet, double?> Value, bool LowerIsBetter = false);
+
+    /// <summary>The nine metrics in the order the comparison table shows them.</summary>
+    private static readonly Metric[] Metrics =
+    [
+        new("cumulativeReturn", "Загальний дохід", set => set.CumulativeReturn),
+        new("cagr", "Середньорічний темп приросту (CAGR﹪)", set => set.Cagr),
+        new("sharpe", "Коефіцієнт Шарпа", set => set.Sharpe),
+        new("sortino", "Коефіцієнт Сортіно", set => set.Sortino),
+        new("calmar", "Коефіцієнт Кальмара", set => set.Calmar),
+        new("maxDrawdown", "Максимальна просадка", set => set.MaxDrawdown, LowerIsBetter: true),
+        new("volatility", "Показник волатильності (річний)", set => set.Volatility, LowerIsBetter: true),
+        new("expectedMonthly", "Прогнозований місячний дохід", set => set.ExpectedMonthly),
+        new("expectedYearly", "Прогнозований річний дохід", set => set.ExpectedYearly),
+    ];
+
+    public static ComparisonResult Compare(MetricSet strategyBase, MetricSet strategyOptimized) =>
+        new()
         {
-            var result = new ComparisonResult();
-
-            AddComparison(result, "Загальний дохід", strategyBase.CumulativeReturn, strategyOptimized.CumulativeReturn);
-            AddComparison(result, "Середньорічний темп приросту (CAGR﹪)", strategyBase.CAGR, strategyOptimized.CAGR);
-            AddComparison(result, "Коефіцієнт Шарпа", strategyBase.Sharpe, strategyOptimized.Sharpe);
-            AddComparison(result, "Коефіцієнт Сортіно", strategyBase.Sortino, strategyOptimized.Sortino);
-            AddComparison(result, "Коефіцієнт Кальмара", strategyBase.Calmar, strategyOptimized.Calmar);
-            AddComparison(result, "Максимальна просадка", strategyBase.MaxDrawdown, strategyOptimized.MaxDrawdown, isLowerBetter: true);
-            AddComparison(result, "Показник волатильності (річний)", strategyBase.VolatilityAnn, strategyOptimized.VolatilityAnn, isLowerBetter: true);
-            AddComparison(result, "Прогнозований місячний дохід", strategyBase.ExpectedMonthly, strategyOptimized.ExpectedMonthly);
-            AddComparison(result, "Прогнозований річний дохід", strategyBase.ExpectedYearly, strategyOptimized.ExpectedYearly);
-
-            return result;
-        }
-
-        private static void AddComparison(ComparisonResult result, string metricName, double strategyBaseValue, double strategyOptimizedValue, bool isLowerBetter = false)
-        {
-            var comparison = new ComparisonViewModel
+            Comparisons = Metrics.Select(metric => new ComparisonViewModel
             {
-                MetricName = metricName,
-                StrategyBaseValue = strategyBaseValue,
-                StrategyOptimizedValue = strategyOptimizedValue,
-            };
-
-            result.Comparisons.Add(comparison);
-        }
-    }
+                MetricKey = metric.Key,
+                MetricName = metric.Name,
+                LowerIsBetter = metric.LowerIsBetter,
+                // An undefined metric is shown as 0, as before.
+                StrategyBaseValue = metric.Value(strategyBase) ?? 0,
+                StrategyOptimizedValue = metric.Value(strategyOptimized) ?? 0,
+            }).ToList()
+        };
+}

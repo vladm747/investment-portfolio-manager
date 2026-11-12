@@ -262,18 +262,6 @@ namespace PortfolioManager.DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<double>("TotalCurrenPrice")
-                        .HasColumnType("float");
-
-                    b.Property<double>("TotalEntryPrice")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("TotalGain")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("TotalGainPercentage")
-                        .HasColumnType("float");
-
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -283,33 +271,6 @@ namespace PortfolioManager.DAL.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Portfolios");
-                });
-
-            modelBuilder.Entity("PortfolioManager.DAL.Entities.PortfolioStatisticForOpt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("LastUpdate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PortfolioId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Symbols")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Weights")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PortfolioStatisticForOptimization");
                 });
 
             modelBuilder.Entity("PortfolioManager.DAL.Entities.Stock", b =>
@@ -325,20 +286,16 @@ namespace PortfolioManager.DAL.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<double>("CurrentPrice")
-                        .HasColumnType("float");
+                    b.Property<decimal>("CurrentPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<DateTime>("EntryDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<double>("EntryPrice")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Gain")
-                        .HasColumnType("float");
-
-                    b.Property<double>("GainPercentage")
-                        .HasColumnType("float");
+                    b.Property<decimal>("EntryPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -359,41 +316,11 @@ namespace PortfolioManager.DAL.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<double>("TotalCurrentPrice")
-                        .HasColumnType("float");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PortfolioId");
 
                     b.ToTable("Stocks");
-                });
-
-            modelBuilder.Entity("PortfolioManager.DAL.Entities.StockDataHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PortfolioId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Symbol")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("StockDataHistory");
                 });
 
             modelBuilder.Entity("PortfolioManager.DAL.Entities.StockSymbol", b =>

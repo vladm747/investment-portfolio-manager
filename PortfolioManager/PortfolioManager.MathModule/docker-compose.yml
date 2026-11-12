@@ -1,7 +1,15 @@
 services:
   pythonOpt:
     image: portfolio-math-module
-    build: 
+    build:
       context: .
     ports:
       - "8011:8011"
+    environment:
+      # Local use; see app/config.py. With MATH_API_KEY unset every caller is accepted. If you set it, set
+      # MathModule:ApiKey of the API (user-secrets) to the same value. Azure sets REQUIRE_API_KEY=true and
+      # ENABLE_DOCS=false (infra/main.bicep); locally /docs stays on.
+      MATH_API_KEY: ${MATH_API_KEY:-}
+      REQUIRE_API_KEY: ${REQUIRE_API_KEY:-false}
+      ENABLE_DOCS: ${ENABLE_DOCS:-true}
+      RISK_FREE_RATE: ${RISK_FREE_RATE:-0}

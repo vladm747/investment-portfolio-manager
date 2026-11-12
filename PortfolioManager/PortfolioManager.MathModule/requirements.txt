@@ -1,12 +1,13 @@
-fastapi
-uvicorn
-datetime
-numpy
-pandas
-yfinance
-quantstats
-pyportfolioopt
-scipy
-IPython
-pydantic
-typing
+# Runtime dependencies of the math service (what the Docker image installs), pinned to a set that installs
+# together on Python 3.12 (checked in a clean venv with `pip install -r requirements.txt` and `pip check`).
+# quantstats is no longer needed at runtime (app/metrics.py computes the metrics); it is a test dependency in
+# requirements-dev.txt, which also keeps matplotlib and seaborn out of the image.
+# pandas stays on 2.x until the service is tested with pandas 3.
+fastapi==0.162.2
+uvicorn==0.54.0
+pydantic==2.14.3
+numpy==2.5.4
+pandas==2.3.3
+scipy==1.18.1
+yfinance==1.8.0
+pyportfolioopt==1.6.0

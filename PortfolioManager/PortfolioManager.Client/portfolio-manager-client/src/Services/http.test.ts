@@ -25,7 +25,7 @@ test('an expired access token is refreshed once and the failed requests are sent
         return authHeader(request) === 'Bearer access-2' ? { status: 200, data: 'ok' } : { status: 401 };
     });
 
-    const responses = await Promise.all([http.get('portfolios'), http.get('stock/1')]);
+    const responses = await Promise.all([http.get('portfolios'), http.get('portfolios/1/positions')]);
 
     expect(responses.map((response) => response.data)).toEqual(['ok', 'ok']);
     const refreshes = requests.filter((request) => request.url === 'auth/refresh-token');

@@ -1,0 +1,17 @@
+# Tool configuration only; the service is not packaged.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = [".venv", "venv"]
+
+[tool.ruff.lint]
+# Ruff's defaults (pyflakes, core pycodestyle errors), plus bugbear, import order and pyupgrade.
+select = ["E4", "E7", "E9", "F", "B", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+# No test may open a socket (SocketBlockedError). tests/test_api.py allows 127.0.0.1 only, for TestClient's event loop.
+# pytest-socket cannot see yfinance's own HTTP client (curl_cffi); tests/conftest.py blocks that separately.
+addopts = "--disable-socket"

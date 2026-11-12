@@ -33,11 +33,11 @@ interface OptimisationResult {
 }
 
 /** The four figures that tell the story at a glance; the table below has all of them. */
-const HEADLINE_METRICS: { name: string; label: string }[] = [
-    { name: 'Коефіцієнт Шарпа', label: 'Коефіцієнт Шарпа' },
-    { name: 'Середньорічний темп приросту (CAGR﹪)', label: 'Річна дохідність (CAGR)' },
-    { name: 'Показник волатильності (річний)', label: 'Волатильність за рік' },
-    { name: 'Максимальна просадка', label: 'Максимальна просадка' },
+const HEADLINE_METRICS: { key: string; label: string }[] = [
+    { key: 'sharpe', label: 'Коефіцієнт Шарпа' },
+    { key: 'cagr', label: 'Річна дохідність (CAGR)' },
+    { key: 'volatility', label: 'Волатильність за рік' },
+    { key: 'maxDrawdown', label: 'Максимальна просадка' },
 ];
 
 function Calculating() {
@@ -129,7 +129,7 @@ function OptimisationContent({ portfolioId }: { portfolioId: number }) {
         );
     }
 
-    const find = (metricName: string) => data.comparisons.find((item) => item.metricName === metricName);
+    const find = (metricKey: string) => data.comparisons.find((item) => item.metricKey === metricKey);
     const { better, total } = countVerdicts(data.comparisons);
 
     return (
@@ -144,24 +144,24 @@ function OptimisationContent({ portfolioId }: { portfolioId: number }) {
             </Alert>
 
             <KpiGrid>
-                {HEADLINE_METRICS.map(({ name: metricName, label }) => {
-                    const item = find(metricName);
+                {HEADLINE_METRICS.map(({ key: metricKey, label }) => {
+                    const item = find(metricKey);
                     if (!item) return null;
-                    const kind = metricInfo(metricName).kind;
+                    const kind = metricInfo(metricKey).kind;
                     const difference = item.strategyOptimizedValue - item.strategyBaseValue;
                     return (
                         <KpiCard
-                            key={metricName}
+                            key={metricKey}
                             label={label}
-                            value={formatMetricValue(metricName, item.strategyOptimizedValue)}
+                            value={formatMetricValue(metricKey, item.strategyOptimizedValue)}
                             delta={
                                 <Delta
                                     format={kind === 'percent' ? 'points' : 'number'}
                                     value={kind === 'percent' ? difference * 100 : difference}
-                                    good={goodDirection(metricName)}
+                                    good={goodDirection(metricKey)}
                                 />
                             }
-                            note={`було ${formatMetricValue(metricName, item.strategyBaseValue)}`}
+                            note={`було ${formatMetricValue(metricKey, item.strategyBaseValue)}`}
                         />
                     );
                 })}

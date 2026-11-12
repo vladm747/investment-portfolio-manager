@@ -4,59 +4,64 @@ const plain = (text: string) => text.replace(/[  ]/g, ' ');
 
 describe('compareMetric', () => {
     test('a higher ratio is better', () => {
-        expect(compareMetric('Коефіцієнт Шарпа', 1.18, 1.46)).toBe('better');
-        expect(compareMetric('Коефіцієнт Шарпа', 1.46, 1.18)).toBe('worse');
+        expect(compareMetric('sharpe', 1.18, 1.46)).toBe('better');
+        expect(compareMetric('sharpe', 1.46, 1.18)).toBe('worse');
     });
 
     test('lower volatility is better', () => {
-        expect(compareMetric('Показник волатильності (річний)', 0.2196, 0.1904)).toBe('better');
-        expect(compareMetric('Показник волатильності (річний)', 0.19, 0.22)).toBe('worse');
+        expect(compareMetric('volatility', 0.2196, 0.1904)).toBe('better');
+        expect(compareMetric('volatility', 0.19, 0.22)).toBe('worse');
     });
 
     test('a drawdown is compared by size: −28% is better than −30%', () => {
-        expect(compareMetric('Максимальна просадка', -0.3, -0.28)).toBe('better');
-        expect(compareMetric('Максимальна просадка', -0.2847, -0.2961)).toBe('worse');
+        expect(compareMetric('maxDrawdown', -0.3, -0.28)).toBe('better');
+        expect(compareMetric('maxDrawdown', -0.2847, -0.2961)).toBe('worse');
     });
 
     test('values that look the same on screen are the same', () => {
-        expect(compareMetric('Загальний дохід', 2.96, 2.96)).toBe('same');
-        expect(compareMetric('Загальний дохід', 2.96001, 2.96002)).toBe('same');
+        expect(compareMetric('cumulativeReturn', 2.96, 2.96)).toBe('same');
+        expect(compareMetric('cumulativeReturn', 2.96001, 2.96002)).toBe('same');
     });
 
     test('a metric the map does not know is judged as higher is better', () => {
-        expect(compareMetric('Нова метрика', 1, 2)).toBe('better');
+        expect(compareMetric('newMetric', 1, 2)).toBe('better');
     });
 });
 
 describe('formatting', () => {
     test('percentages come from fractions, ratios stay plain numbers', () => {
-        expect(formatMetricValue('Загальний дохід', 2.96)).toBe('296,00%');
-        expect(formatMetricValue('Максимальна просадка', -0.2847)).toBe('−28,47%');
-        expect(formatMetricValue('Коефіцієнт Шарпа', 1.4567)).toBe('1,46');
+        expect(formatMetricValue('cumulativeReturn', 2.96)).toBe('296,00%');
+        expect(formatMetricValue('maxDrawdown', -0.2847)).toBe('−28,47%');
+        expect(formatMetricValue('sharpe', 1.4567)).toBe('1,46');
     });
 
     test('the change of a percentage is in percentage points', () => {
-        expect(plain(formatMetricChange('Загальний дохід', 2.96, 3.84))).toBe('+88,00 п.п.');
-        expect(plain(formatMetricChange('Показник волатильності (річний)', 0.2196, 0.1904))).toBe('−2,92 п.п.');
+        expect(plain(formatMetricChange('cumulativeReturn', 2.96, 3.84))).toBe('+88,00 п.п.');
+        expect(plain(formatMetricChange('volatility', 0.2196, 0.1904))).toBe('−2,92 п.п.');
     });
 
     test('the change of a ratio is a signed number', () => {
-        expect(formatMetricChange('Коефіцієнт Шарпа', 1.18, 1.46)).toBe('+0,28');
-        expect(formatMetricChange('Коефіцієнт Шарпа', 1.46, 1.18)).toBe('−0,28');
-        expect(formatMetricChange('Коефіцієнт Шарпа', 1.2, 1.2)).toBe('0,00');
+        expect(formatMetricChange('sharpe', 1.18, 1.46)).toBe('+0,28');
+        expect(formatMetricChange('sharpe', 1.46, 1.18)).toBe('−0,28');
+        expect(formatMetricChange('sharpe', 1.2, 1.2)).toBe('0,00');
     });
 });
 
-test('every metric the API sends has a rule and a description', () => {
-    const names = [
-        'Загальний дохід', 'Середньорічний темп приросту (CAGR﹪)', 'Коефіцієнт Шарпа', 'Коефіцієнт Сортіно',
-        'Коефіцієнт Кальмара', 'Максимальна просадка', 'Показник волатильності (річний)',
-        'Прогнозований місячний дохід', 'Прогнозований річний дохід',
+test('every metric the API sends, by its key, has a rule and a description', () => {
+    // The nine keys of PortfolioComparer in the API.
+    const keys = [
+        'cumulativeReturn', 'cagr', 'sharpe', 'sortino', 'calmar', 'maxDrawdown', 'volatility', 'expectedMonthly', 'expectedYearly',
     ];
-    names.forEach((name) => {
-        expect(METRICS[name]).toBeDefined();
-        expect(metricInfo(name).description.length).toBeGreaterThan(10);
+    keys.forEach((key) => {
+        expect(METRICS[key]).toBeDefined();
+        expect(metricInfo(key).description.length).toBeGreaterThan(10);
     });
+    expect(Object.keys(METRICS).sort()).toEqual([...keys].sort());
+});
+
+test('a metric is found by its key, never by its Ukrainian name', () => {
+    expect(metricInfo('Коефіцієнт Шарпа')).not.toBe(METRICS.sharpe);
+    expect(metricInfo('sharpe')).toBe(METRICS.sharpe);
 });
 
 test('weights are lined up by ticker and shown in percent', () => {
@@ -70,7 +75,7 @@ test('weights are lined up by ticker and shown in percent', () => {
 
 test('good direction follows the sign convention of each metric', async () => {
     const { goodDirection } = await import('./metrics');
-    expect(goodDirection('Коефіцієнт Шарпа')).toBe('up');
-    expect(goodDirection('Показник волатильності (річний)')).toBe('down');
-    expect(goodDirection('Максимальна просадка')).toBe('up');
+    expect(goodDirection('sharpe')).toBe('up');
+    expect(goodDirection('volatility')).toBe('down');
+    expect(goodDirection('maxDrawdown')).toBe('up');
 });

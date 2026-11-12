@@ -14,25 +14,11 @@
       <FileName>Entities\Portfolio.cs</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="PortfolioManager.DAL.Entities.PortfolioStatisticForOpt">
-    <Position X="15.5" Y="3.25" Width="2" />
-    <TypeIdentifier>
-      <HashCode>AAACAAAAAABAAAAAAAAAAAAQAAAAAAAAAEAAAAACAAA=</HashCode>
-      <FileName>Entities\PortfolioStatisticForOpt.cs</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="PortfolioManager.DAL.Entities.Stock">
     <Position X="11.75" Y="3" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAACAAAAGAAAAAAAAAAAAESACAIBACAAAAAAgEACCAA=</HashCode>
       <FileName>Entities\Stock.cs</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="PortfolioManager.DAL.Entities.StockDataHistory">
-    <Position X="10" Y="3" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAACAAAAAQAAAAAAAAAAAAAAAAAAAAABAAAAAAACCAA=</HashCode>
-      <FileName>Entities\StockDataHistory.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PortfolioManager.DAL.Entities.StockSymbol">
@@ -55,22 +41,6 @@
     <TypeIdentifier>
       <HashCode>AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
       <FileName>Infrastructure\DI\Implementation\PortfolioRepository.cs</FileName>
-    </TypeIdentifier>
-    <Lollipop Position="0.2" />
-  </Class>
-  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.PortfolioStatisticForOptRepository">
-    <Position X="11.25" Y="1.25" Width="2" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>Infrastructure\DI\Implementation\PortfolioStatisticForOptRepository.cs</FileName>
-    </TypeIdentifier>
-    <Lollipop Position="0.2" />
-  </Class>
-  <Class Name="PortfolioManager.DAL.Infrastructure.DI.Implementation.StockDataHistoryRepository">
-    <Position X="13.5" Y="1.25" Width="2.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>Infrastructure\DI\Implementation\StockDataHistoryRepository.cs</FileName>
     </TypeIdentifier>
     <Lollipop Position="0.2" />
   </Class>

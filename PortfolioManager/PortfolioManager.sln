@@ -8,7 +8,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.BLL", "Por
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.Common", "PortfolioManager.Common\PortfolioManager.Common.csproj", "{C3BAC8F3-3E58-4F20-969E-B5F873252FD0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YahooFinance.Client", "YahooFinance.Client\YahooFinance.Client.csproj", "{4075DD47-2340-483C-8832-B62274DDE599}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.MathModule.Client", "PortfolioManager.MathModule.Client\PortfolioManager.MathModule.Client.csproj", "{4075DD47-2340-483C-8832-B62274DDE599}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortfolioManager.Tests", "PortfolioManager.Tests\PortfolioManager.Tests.csproj", "{3913303F-2C61-4079-80D9-B012E0FDDD73}"
 EndProject
