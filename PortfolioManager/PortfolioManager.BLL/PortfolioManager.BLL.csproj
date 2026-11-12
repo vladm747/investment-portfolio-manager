@@ -7,13 +7,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PortfolioManager.Common\PortfolioManager.Common.csproj" />
-      <ProjectReference Include="..\PortfolioManager.DAL\PortfolioManager.DAL.csproj" />
-      <ProjectReference Include="..\YahooFinance.Client\YahooFinance.Client.csproj" />
+      <!-- The auth services use ASP.NET Core Identity (SignInManager) and the JWT types. The reference used to come
+           in through PortfolioManager.Common, which has no business depending on a web framework. -->
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="AutoMapper" Version="13.0.1" />
+      <ProjectReference Include="..\PortfolioManager.Common\PortfolioManager.Common.csproj" />
+      <ProjectReference Include="..\PortfolioManager.DAL\PortfolioManager.DAL.csproj" />
+      <ProjectReference Include="..\PortfolioManager.MathModule.Client\PortfolioManager.MathModule.Client.csproj" />
     </ItemGroup>
-  
+
 </Project>

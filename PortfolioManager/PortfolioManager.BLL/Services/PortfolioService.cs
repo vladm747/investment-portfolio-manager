@@ -1,105 +1,50 @@
-﻿using AutoMapper;
-using Newtonsoft.Json;
+﻿using PortfolioManager.BLL.Exceptions;
 using PortfolioManager.BLL.Interfaces;
+using PortfolioManager.BLL.Mapping;
 using PortfolioManager.Common.DTO;
 using PortfolioManager.DAL.Entities;
 using PortfolioManager.DAL.Infrastructure.DI.Abstract;
-using PortfolioManager.DAL.Infrastructure.DI.Abstract.Base;
-using YahooFinance.Client.Interfaces;
 
 namespace PortfolioManager.BLL.Services;
 
 public class PortfolioService : IPortfolioService
 {
     private readonly IPortfolioRepository _portfolioRepository;
-    private readonly IPortfolioStatisticForOptRepository _portfolioStatRepository;
-    private readonly IMapper _mapper;
 
-    public PortfolioService(IPortfolioRepository portfolioRepository, IMapper mapper, 
-        IPortfolioStatisticForOptRepository portfolioStatRepository)
+    public PortfolioService(IPortfolioRepository portfolioRepository)
     {
-        _mapper = mapper;
         _portfolioRepository = portfolioRepository;
-        _portfolioStatRepository = portfolioStatRepository;
     }
 
-    public async Task<IEnumerable<PortfolioDTO>> GetAllAsync(string userId)
+    public async Task<IReadOnlyList<PortfolioDTO>> GetAllAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var portfolios = await _portfolioRepository.GetAllAsync(userId);
-        var dtos = _mapper.Map<IEnumerable<PortfolioDTO>>(portfolios).ToList();
-        foreach (var dto in dtos)
-        {
-            if(dto.Stocks == null || dto.Stocks.Count == 0)
-                continue;
-            dto.TotalCurrentPrice = dto.Stocks.Sum(s => s.TotalCurrentPrice);
-            dto.TotalGain = dto.TotalCurrentPrice - dto.TotalEntryPrice;
-            dto.TotalGainPercentage = (dto.TotalGain / dto.TotalEntryPrice) * 100;
-        }
+        var portfolios = await _portfolioRepository.GetAllAsync(userId, cancellationToken);
 
-        return dtos;
+        return portfolios.Select(portfolio => portfolio.ToDto()).ToList();
     }
 
-    public async Task<PortfolioDTO> GetAsync(int portfolioId)
+    public async Task<PortfolioDTO> GetAsync(string userId, int portfolioId, CancellationToken cancellationToken = default)
     {
-        var portfolio = await _portfolioRepository.GetAsync(portfolioId);
+        var portfolio = await _portfolioRepository.GetOwnedAsync(portfolioId, userId, cancellationToken)
+                        ?? throw NotFoundException.Portfolio();
 
-        if (portfolio == null)
-            throw new InvalidOperationException("There is not portfolio with this id");
-
-        return _mapper.Map<PortfolioDTO>(portfolio);
+        return portfolio.ToDto();
     }
 
-    public async Task<int> DeleteAsync(int portfolioId)
+    public async Task<int> DeleteAsync(string userId, int portfolioId, CancellationToken cancellationToken = default)
     {
-        var entity = await _portfolioRepository.GetAsync(portfolioId);
-        
-        if (entity == null)
-            throw new InvalidOperationException("There is no portfolio with this id");
-        
-        return await _portfolioRepository.DeleteAsync(entity);
+        var portfolio = await _portfolioRepository.GetOwnedAsync(portfolioId, userId, cancellationToken)
+                        ?? throw NotFoundException.Portfolio();
+
+        return await _portfolioRepository.DeleteAsync(portfolio, cancellationToken);
     }
 
-    public async Task<PortfolioDTO> CreatePortfolioAsync(CreatePortfolioDTO createPortfolio)
+    public async Task<PortfolioDTO> CreatePortfolioAsync(string userId, CreatePortfolioDTO createPortfolio,
+        CancellationToken cancellationToken = default)
     {
-        var model = _mapper.Map<Portfolio>(createPortfolio);
-        var createdModel = await _portfolioRepository.CreateAsync(model);
-        
-        if (createdModel == null)
-            throw new Exception("Can't create a createPortfolio");
-        
-        return _mapper.Map<PortfolioDTO>(createdModel);
-    }
-    
-    public async Task UpdateTotalPortfolioValue(int portfolioId)
-    {
-        var portfolio = await _portfolioRepository.GetAsync(portfolioId);
+        var portfolio = await _portfolioRepository.CreateAsync(
+            new Portfolio { Name = createPortfolio.Name.Trim(), UserId = userId }, cancellationToken);
 
-        if (portfolio == null)
-            throw new InvalidOperationException("There is no portfolio with this id");
-
-        portfolio.TotalEntryPrice = portfolio.Stocks.Sum(s => s.EntryPrice * s.Quantity);
-        portfolio.TotalCurrenPrice = portfolio.Stocks.Sum(s => s.TotalCurrentPrice);
-        portfolio.TotalGain = portfolio.TotalCurrenPrice - portfolio.TotalEntryPrice;
-        portfolio.TotalGainPercentage = portfolio.TotalGain / portfolio.TotalEntryPrice * 100;
-        
-        List<string> symbols = new List<string>();
-        List<double> weights = new List<double>();
-        foreach (var stock in portfolio.Stocks)
-        {
-            weights.Add((double)(stock.TotalCurrentPrice / portfolio.TotalCurrenPrice));
-            symbols.Add(stock.Symbol);
-        }
-
-        var portfolioStat = new PortfolioStatisticForOpt
-        {
-            LastUpdate = DateTime.Now,
-            PortfolioId = portfolioId,
-            Symbols = JsonConvert.SerializeObject(symbols.ToArray()),
-            Weights = JsonConvert.SerializeObject(weights.ToArray())
-        };
-        
-        await _portfolioStatRepository.CreateAsync(portfolioStat);
-        
-        var result = await _portfolioRepository.UpdateAsync(portfolio);
+        return portfolio.ToDto();
     }
 }

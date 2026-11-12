@@ -5,7 +5,6 @@ namespace PortfolioManager.DAL.Entities.Auth;
 
 public class User: IdentityUser
 {
-    public override string Id { get; set; }
     [MaxLength(50)]
     public string FullName { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;

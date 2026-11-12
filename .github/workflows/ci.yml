@@ -1,0 +1,103 @@
+# Build and test all three parts of Portfolio Manager on every push to master and every pull request.
+# Nothing here needs secrets, a database or the network beyond package downloads:
+# the .NET tests use an in-memory database, and the Python tests run with sockets blocked.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet:
+    name: .NET API (build, test)
+    runs-on: ubuntu-latest
+    env:
+      # MSBuild reads these as properties, for restore, build and test alike. The solution builds with no warnings,
+      # so any new one (nullable, unused code, a vulnerable package) fails the build instead of piling up again.
+      # NuGet audit warnings for LOW and MODERATE vulnerabilities (NU1901, NU1902) stay warnings: a new advisory
+      # on a package nobody touched should not turn an unrelated pull request red. HIGH and CRITICAL
+      # (NU1903, NU1904) do fail it.
+      TreatWarningsAsErrors: "true"
+      WarningsNotAsErrors: NU1901;NU1902
+    defaults:
+      run:
+        working-directory: PortfolioManager
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore PortfolioManager.sln
+
+      - name: Build (warnings are errors)
+        run: dotnet build PortfolioManager.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test PortfolioManager.sln --no-build --configuration Release --logger "console;verbosity=normal"
+
+  python:
+    name: Math service (ruff, pytest, image)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PortfolioManager/PortfolioManager.MathModule
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: PortfolioManager/PortfolioManager.MathModule/requirements*.txt
+
+      - name: Install
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test (network blocked)
+        # --disable-socket is also set in pyproject.toml; repeated here so the job never runs without it.
+        # tests/conftest.py additionally blocks yfinance's own HTTP client, which pytest-socket cannot see.
+        run: python -m pytest --disable-socket
+
+      - name: Build Docker image
+        # Build only; the container is not started, so nothing calls Yahoo Finance.
+        run: docker build --tag portfolio-math-module:ci .
+
+  client:
+    name: React client (test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PortfolioManager/PortfolioManager.Client/portfolio-manager-client
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: PortfolioManager/PortfolioManager.Client/portfolio-manager-client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        # Type-checks (tsc --noEmit) and bundles with Vite; VITE_API_URL comes from the committed .env.
+        run: npm run build

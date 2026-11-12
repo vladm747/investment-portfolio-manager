@@ -62,8 +62,7 @@ export default function AddPositionDialog({ open, portfolioId, onClose, onAdded 
         setServerError(null);
         setSubmitting(true);
         try {
-            await CreateStock({
-                portfolioId,
+            await CreateStock(portfolioId, {
                 symbol,
                 quantity: parseWholeNumber(form.quantity),
                 entryPrice: parseDecimal(form.entryPrice),

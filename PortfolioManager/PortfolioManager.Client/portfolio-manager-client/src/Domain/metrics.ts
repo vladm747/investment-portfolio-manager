@@ -13,52 +13,53 @@ export interface MetricInfo {
 }
 
 /**
- * Every metric the comparison can show, keyed by the exact name the API sends. The rules live only here;
+ * Every metric the comparison can show, keyed by the stable `metricKey` the API sends with each of them
+ * (the name is for display and is in Ukrainian, so nothing here depends on it). The rules live only here;
  * a metric the map does not know is shown as a plain number where higher is better.
  */
 export const METRICS: Record<string, MetricInfo> = {
-    'Загальний дохід': {
+    cumulativeReturn: {
         kind: 'percent',
         better: 'higher',
         description: 'На скільки відсотків зросла вартість портфеля за весь розрахунковий період.',
     },
-    'Середньорічний темп приросту (CAGR﹪)': {
+    cagr: {
         kind: 'percent',
         better: 'higher',
         description: 'Середня річна дохідність, якщо прибуток щороку реінвестується.',
     },
-    'Коефіцієнт Шарпа': {
+    sharpe: {
         kind: 'ratio',
         better: 'higher',
         description: 'Дохідність понад безризикову ставку на одиницю ризику. Що більше, то краще.',
     },
-    'Коефіцієнт Сортіно': {
+    sortino: {
         kind: 'ratio',
         better: 'higher',
         description: 'Як коефіцієнт Шарпа, але враховує лише коливання вниз: «поганий» ризик.',
     },
-    'Коефіцієнт Кальмара': {
+    calmar: {
         kind: 'ratio',
         better: 'higher',
         description: 'Річна дохідність, поділена на максимальну просадку.',
     },
-    'Максимальна просадка': {
+    maxDrawdown: {
         kind: 'percent',
         better: 'lower',
         compareBy: 'magnitude',
         description: 'Найбільше падіння вартості від піку до дна за період. Що менша просадка, то краще.',
     },
-    'Показник волатильності (річний)': {
+    volatility: {
         kind: 'percent',
         better: 'lower',
         description: 'Розмах коливань дохідності за рік. Менша волатильність означає стабільніший портфель.',
     },
-    'Прогнозований місячний дохід': {
+    expectedMonthly: {
         kind: 'percent',
         better: 'higher',
         description: 'Очікувана дохідність за місяць, якщо минулі результати повторяться.',
     },
-    'Прогнозований річний дохід': {
+    expectedYearly: {
         kind: 'percent',
         better: 'higher',
         description: 'Очікувана дохідність за рік, якщо минулі результати повторяться.',
@@ -67,13 +68,13 @@ export const METRICS: Record<string, MetricInfo> = {
 
 const FALLBACK: MetricInfo = { kind: 'ratio', better: 'higher', description: '' };
 
-export const metricInfo = (name: string): MetricInfo => METRICS[name] ?? FALLBACK;
+export const metricInfo = (key: string): MetricInfo => METRICS[key] ?? FALLBACK;
 
 export type Verdict = 'better' | 'worse' | 'same';
 
 /** Is the optimised value better than the current one, by this metric's own rule? */
-export function compareMetric(name: string, current: number, optimised: number): Verdict {
-    const info = metricInfo(name);
+export function compareMetric(key: string, current: number, optimised: number): Verdict {
+    const info = metricInfo(key);
     const size = (value: number) => (info.compareBy === 'magnitude' ? Math.abs(value) : value);
     // Values that look the same on screen count as the same.
     const round = (value: number) => Number(size(value).toFixed(4));
@@ -85,14 +86,14 @@ export function compareMetric(name: string, current: number, optimised: number):
     return optimisedIsHigher === (info.better === 'higher') ? 'better' : 'worse';
 }
 
-export function formatMetricValue(name: string, value: number): string {
-    return metricInfo(name).kind === 'percent' ? formatPercent(value * 100) : formatNumber(value, 2);
+export function formatMetricValue(key: string, value: number): string {
+    return metricInfo(key).kind === 'percent' ? formatPercent(value * 100) : formatNumber(value, 2);
 }
 
 /** The change from current to optimised: «+3,66 п.п.» for percentages, «+0,28» for ratios. */
-export function formatMetricChange(name: string, current: number, optimised: number): string {
+export function formatMetricChange(key: string, current: number, optimised: number): string {
     const difference = optimised - current;
-    if (metricInfo(name).kind === 'percent') {
+    if (metricInfo(key).kind === 'percent') {
         return `${formatPercent(difference * 100, { signed: true })} п.п.`.replace('%', '');
     }
     const text = formatNumber(Math.abs(difference), 2);
@@ -119,8 +120,8 @@ export function toWeightRows(baseWeights: number[], optimisedWeights: Record<str
  * Which change of the raw number is good news. A drawdown is negative, so a smaller one is a larger number
  * (−28% is above −30%); volatility is positive, so a smaller one is a smaller number.
  */
-export function goodDirection(name: string): 'up' | 'down' {
-    const info = metricInfo(name);
+export function goodDirection(key: string): 'up' | 'down' {
+    const info = metricInfo(key);
     if (info.better === 'higher') return 'up';
     return info.compareBy === 'magnitude' ? 'up' : 'down';
 }

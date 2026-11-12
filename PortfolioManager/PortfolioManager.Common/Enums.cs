@@ -12,7 +12,9 @@ public enum SectorEnum
     Energy = 7,
     BasicMaterials = 8, 
     RealEstate = 9,
-    Utilities = 10
+    Utilities = 10,
+    /// <summary>No sector from the market data, as for ETFs and funds. Stored as 11; appended, so no stored value changes.</summary>
+    Unknown = 11
 }
 
 // public static string Technology = "Technology";

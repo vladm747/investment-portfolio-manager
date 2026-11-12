@@ -4,11 +4,11 @@ import { http } from "./http";
 const STATISTICS_TIMEOUT_MS = 100000;
 
 export const GetOptimisationData = async (portfolioId: number) => {
-    const response = await http.get('statistics/opt/' + portfolioId, { timeout: STATISTICS_TIMEOUT_MS });
+    const response = await http.get(`portfolios/${portfolioId}/optimisation`, { timeout: STATISTICS_TIMEOUT_MS });
     return response.data;
 };
 
 export const GetGrowthStatsData = async (portfolioId: number) => {
-    const response = await http.get('statistics/growth/' + portfolioId, { timeout: STATISTICS_TIMEOUT_MS });
+    const response = await http.get(`portfolios/${portfolioId}/growth`, { timeout: STATISTICS_TIMEOUT_MS });
     return response.data;
 };

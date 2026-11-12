@@ -4,6 +4,9 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <!-- Three old migrations have lower-case class names (updateTables, ...). The class name is not the
+             migration's id (the [Migration] attribute holds that), but renaming applied history is not worth the risk. -->
+        <NoWarn>$(NoWarn);CS8981</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

@@ -17,7 +17,12 @@ import TrendingFlat from '@mui/icons-material/TrendingFlat';
 import { compareMetric, formatMetricChange, formatMetricValue, metricInfo, Verdict } from '../../Domain/metrics';
 
 export interface MetricComparison {
+    /** Stable identifier such as "sharpe": every rule about the metric is looked up by it. */
+    metricKey: string;
+    /** The name to show, in Ukrainian. */
     metricName: string;
+    /** The API's own statement of which way is better; the rules in Domain/metrics.ts agree with it. */
+    lowerIsBetter?: boolean;
     strategyBaseValue: number;
     strategyOptimizedValue: number;
 }
@@ -38,7 +43,7 @@ function VerdictBadge({ verdict }: { verdict: Verdict }) {
 
 /** How many metrics improved: shown above the table as the one-line answer. */
 export function countVerdicts(comparisons: MetricComparison[]) {
-    const verdicts = comparisons.map((item) => compareMetric(item.metricName, item.strategyBaseValue, item.strategyOptimizedValue));
+    const verdicts = comparisons.map((item) => compareMetric(item.metricKey, item.strategyBaseValue, item.strategyOptimizedValue));
     return { better: verdicts.filter((v) => v === 'better').length, total: verdicts.length };
 }
 
@@ -64,10 +69,10 @@ export default function MetricsTable({ comparisons }: { comparisons: MetricCompa
                     </TableHead>
                     <TableBody>
                         {comparisons.map((item) => {
-                            const info = metricInfo(item.metricName);
-                            const verdict = compareMetric(item.metricName, item.strategyBaseValue, item.strategyOptimizedValue);
+                            const info = metricInfo(item.metricKey);
+                            const verdict = compareMetric(item.metricKey, item.strategyBaseValue, item.strategyOptimizedValue);
                             return (
-                                <TableRow key={item.metricName}>
+                                <TableRow key={item.metricKey}>
                                     <TableCell sx={{ pl: 2.5 }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                             <span>{item.metricName}</span>
@@ -81,13 +86,13 @@ export default function MetricsTable({ comparisons }: { comparisons: MetricCompa
                                         </Box>
                                     </TableCell>
                                     <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                                        {formatMetricValue(item.metricName, item.strategyBaseValue)}
+                                        {formatMetricValue(item.metricKey, item.strategyBaseValue)}
                                     </TableCell>
                                     <TableCell align="right" sx={{ fontWeight: 600 }}>
-                                        {formatMetricValue(item.metricName, item.strategyOptimizedValue)}
+                                        {formatMetricValue(item.metricKey, item.strategyOptimizedValue)}
                                     </TableCell>
                                     <TableCell align="right" sx={{ color: 'text.secondary' }}>
-                                        {formatMetricChange(item.metricName, item.strategyBaseValue, item.strategyOptimizedValue)}
+                                        {formatMetricChange(item.metricKey, item.strategyBaseValue, item.strategyOptimizedValue)}
                                     </TableCell>
                                     <TableCell sx={{ pr: 2.5 }}>
                                         <VerdictBadge verdict={verdict} />

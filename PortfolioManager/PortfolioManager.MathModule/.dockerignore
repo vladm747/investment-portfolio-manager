@@ -1,0 +1,15 @@
+# Only app/ and requirements.txt belong in the image.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+tests/
+requirements-dev.txt
+pyproject.toml
+*.log
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore

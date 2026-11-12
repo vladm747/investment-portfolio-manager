@@ -19,30 +19,37 @@ public abstract class RepositoryBase<TKey, TEntity> : IRepositoryBase<TKey, TEnt
         _disposeContext = false;
     }
     
-    public virtual async Task<TEntity> FindByKeyAsync(TKey key)
+    public virtual async Task<TEntity?> FindByKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        return await Table.FindAsync(key);
+        return await Table.FindAsync(new object?[] { key }, cancellationToken);
     }
 
-    public async Task<TEntity?> CreateAsync(TEntity item)
+    public async Task<TEntity> CreateAsync(TEntity item, CancellationToken cancellationToken = default)
     {
-        var entityEntry = await Table.AddAsync(item);
-        await Context.SaveChangesAsync();
+        var entityEntry = await Table.AddAsync(item, cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
         return entityEntry.Entity;
     }
 
-    public async Task<int>  UpdateAsync(TEntity item)
+    public async Task<int> UpdateAsync(TEntity item, CancellationToken cancellationToken = default)
     {
         Context.Entry(item).State = EntityState.Modified;
-        var result = await Context.SaveChangesAsync();
-        return result;
+        return await Context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<int> DeleteAsync(TEntity item)
+    public async Task<int> UpdateRangeAsync(IReadOnlyCollection<TEntity> items, CancellationToken cancellationToken = default)
+    {
+        foreach (var item in items)
+            Context.Entry(item).State = EntityState.Modified;
+
+        // One SaveChanges is one transaction: either every item is saved or none is.
+        return await Context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<int> DeleteAsync(TEntity item, CancellationToken cancellationToken = default)
     {
         Table.Remove(item);
-        var result = await Context.SaveChangesAsync();
-        return result;
+        return await Context.SaveChangesAsync(cancellationToken);
     }
     
     protected virtual void Dispose(bool disposing)

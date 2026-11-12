@@ -5,10 +5,18 @@ using PortfolioManager.BLL.Interfaces;
 using PortfolioManager.Common.DTO;
 
 namespace PortfolioManager.API.Controllers;
+
+/// <summary>
+/// Portfolios: <c>GET/POST api/portfolios</c>, <c>GET/DELETE api/portfolios/{id}</c>. The user is always the one
+/// in the access token. A portfolio of another user is answered with 404, exactly like one that does not exist.
+/// </summary>
 [Authorize]
-[Route("api")]
+[ApiController]
+[Route("api/portfolios")]
 public class PortfolioController : ControllerBase
 {
+    private const string GetPortfolioRoute = "GetPortfolio";
+
     private readonly IPortfolioService _portfolioService;
 
     public PortfolioController(IPortfolioService portfolioService)
@@ -16,44 +24,40 @@ public class PortfolioController : ControllerBase
         _portfolioService = portfolioService;
     }
 
-    /// <summary>
-    /// Portfolios of the signed-in user. POST is kept only so the client that is deployed now keeps
-    /// working until it is redeployed; the user id it sends in the form is ignored.
-    /// </summary>
-    [HttpGet("portfolios")]
-    [HttpPost("portfolios")]
-    public async Task<IActionResult> GetAllAsync()
+    /// <summary>The signed-in user's portfolios, each with its positions and totals.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
     {
-        var portfolios = await _portfolioService.GetAllAsync(User.GetUserId());
+        var portfolios = await _portfolioService.GetAllAsync(User.GetUserId(), cancellationToken);
 
         return Ok(portfolios);
     }
-    [HttpGet("portfolio/{id}")]
-    public async Task<IActionResult> GetAsync(int id)
-    {
-        var portfolio = await _portfolioService.GetAsync(id);
 
-        if(portfolio == null)
-            return NotFound();
+    [HttpGet("{id:int}", Name = GetPortfolioRoute)]
+    public async Task<IActionResult> GetAsync(int id, CancellationToken cancellationToken)
+    {
+        var portfolio = await _portfolioService.GetAsync(User.GetUserId(), id, cancellationToken);
 
         return Ok(portfolio);
     }
 
-    [HttpPost("portfolio")]
-    public async Task<IActionResult> CreateAsync([FromBody] CreatePortfolioDTO createPortfolioDto)
+    /// <summary>Creates an empty portfolio for the signed-in user: 201 with the portfolio and its address.</summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateAsync([FromBody] CreatePortfolioDTO createPortfolioDto,
+        CancellationToken cancellationToken)
     {
-        // The owner always comes from the access token, never from the request body.
-        createPortfolioDto.UserId = User.GetUserId();
-        var createdPortfolio = await _portfolioService.CreatePortfolioAsync(createPortfolioDto);
+        var created = await _portfolioService.CreatePortfolioAsync(
+            User.GetUserId(), createPortfolioDto, cancellationToken);
 
-        return Ok(createdPortfolio);
+        return CreatedAtRoute(GetPortfolioRoute, new { id = created.Id }, created);
     }
 
-    [HttpDelete("portfolio/{portfolioId}")]
-    public async Task<IActionResult> CreateAsync(int portfolioId)
+    /// <summary>Deletes the portfolio and its positions: 204.</summary>
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var createdPortfolio = await _portfolioService.DeleteAsync(portfolioId);
+        await _portfolioService.DeleteAsync(User.GetUserId(), id, cancellationToken);
 
-        return Ok(createdPortfolio);
+        return NoContent();
     }
 }

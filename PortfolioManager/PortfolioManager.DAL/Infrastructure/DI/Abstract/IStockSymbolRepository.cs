@@ -4,5 +4,5 @@ namespace PortfolioManager.DAL.Infrastructure.DI.Abstract;
 
 public interface IStockSymbolRepository
 {
-    public Task<StockSymbol> GetBySymbol(string symbol);
+    public Task<StockSymbol?> GetBySymbol(string symbol);
 }

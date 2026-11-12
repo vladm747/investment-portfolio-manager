@@ -9,9 +9,15 @@ namespace PortfolioManager.DAL.Infrastructure.DI.Implementation;
 public class StockRepository: RepositoryBase<int, Stock>, IStockRepository
 {
     public StockRepository(PortfolioManagerDbContext context): base(context) { }
-    
-    public async Task<IEnumerable<Stock>> GetAllAsync(int portfolioId)
+
+    public async Task<IReadOnlyList<Stock>> GetAllAsync(int portfolioId, CancellationToken cancellationToken = default)
     {
-        return await Table.Select(item => item).Where(item => item.PortfolioId == portfolioId).ToListAsync();
+        return await Table.Where(item => item.PortfolioId == portfolioId).ToListAsync(cancellationToken);
+    }
+
+    public async Task<Stock?> FindOwnedAsync(int stockId, string userId, CancellationToken cancellationToken = default)
+    {
+        return await Table.Where(item => item.Id == stockId && item.Portfolio!.UserId == userId)
+            .SingleOrDefaultAsync(cancellationToken);
     }
 }

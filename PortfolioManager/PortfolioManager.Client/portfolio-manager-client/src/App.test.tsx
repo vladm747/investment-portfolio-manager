@@ -28,9 +28,9 @@ const position = {
 test('a portfolio opens by the id in the address, so a reload shows the same portfolio', async () => {
   sessionStore.start(authResult(1));
   const requests = fakeApi((request) => {
-    if (request.url === 'portfolio/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
-    if (request.url === 'stock/5') return { status: 200, data: [position] };
-    if (request.url === 'statistics/growth/5') return { status: 200, data: { growthData: {} } };
+    if (request.url === 'portfolios/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
+    if (request.url === 'portfolios/5/positions') return { status: 200, data: [position] };
+    if (request.url === 'portfolios/5/growth') return { status: 200, data: { growthData: {} } };
     return { status: 404 };
   });
   window.history.pushState({}, '', '/portfolios/5');
@@ -39,7 +39,7 @@ test('a portfolio opens by the id in the address, so a reload shows the same por
 
   expect(await screen.findByRole('heading', { name: 'Дивідендний', level: 1 })).toBeInTheDocument();
   expect((await screen.findAllByText('AAPL')).length).toBeGreaterThan(0);
-  expect(requests.map((request) => request.url)).toEqual(expect.arrayContaining(['portfolio/5', 'stock/5']));
+  expect(requests.map((request) => request.url)).toEqual(expect.arrayContaining(['portfolios/5', 'portfolios/5/positions']));
 });
 
 test('an address of a portfolio that does not exist says so instead of crashing', async () => {
@@ -60,5 +60,5 @@ test('an address that is not a number says the portfolio was not found', async (
   render(<App />);
 
   expect(await screen.findByText('Портфель не знайдено')).toBeInTheDocument();
-  expect(requests.filter((request) => request.url?.startsWith('portfolio/NaN'))).toHaveLength(0);
+  expect(requests.filter((request) => request.url?.startsWith('portfolios/NaN'))).toHaveLength(0);
 });

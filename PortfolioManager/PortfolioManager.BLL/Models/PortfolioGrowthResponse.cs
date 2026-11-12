@@ -2,5 +2,5 @@
 
 public class PortfolioGrowthResponse
 {
-    public Dictionary<DateTime, decimal> GrowthData { get; set; }
+    public Dictionary<DateTime, decimal> GrowthData { get; set; } = new();
 }

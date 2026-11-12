@@ -6,28 +6,28 @@ import { renderWithProviders } from '../../testing/renderWithProviders';
 
 const plain = (text: string | null) => (text ?? '').replace(/[  ]/g, ' ');
 
-const comparison = (metricName: string, strategyBaseValue: number, strategyOptimizedValue: number) => ({ metricName, strategyBaseValue, strategyOptimizedValue });
+const comparison = (metricKey: string, metricName: string, strategyBaseValue: number, strategyOptimizedValue: number) => ({ metricKey, metricName, strategyBaseValue, strategyOptimizedValue });
 
 // Eight of nine metrics improve; the maximum drawdown gets a little deeper.
 const result = {
     comparisons: [
-        comparison('Загальний дохід', 2.96, 3.84),
-        comparison('Середньорічний темп приросту (CAGR﹪)', 0.237, 0.274),
-        comparison('Коефіцієнт Шарпа', 1.18, 1.46),
-        comparison('Коефіцієнт Сортіно', 1.72, 2.19),
-        comparison('Коефіцієнт Кальмара', 0.83, 0.93),
-        comparison('Максимальна просадка', -0.2847, -0.2961),
-        comparison('Показник волатильності (річний)', 0.2196, 0.1904),
-        comparison('Прогнозований місячний дохід', 0.0198, 0.0228),
-        comparison('Прогнозований річний дохід', 0.237, 0.274),
+        comparison('cumulativeReturn', 'Загальний дохід', 2.96, 3.84),
+        comparison('cagr', 'Середньорічний темп приросту (CAGR﹪)', 0.237, 0.274),
+        comparison('sharpe', 'Коефіцієнт Шарпа', 1.18, 1.46),
+        comparison('sortino', 'Коефіцієнт Сортіно', 1.72, 2.19),
+        comparison('calmar', 'Коефіцієнт Кальмара', 0.83, 0.93),
+        comparison('maxDrawdown', 'Максимальна просадка', -0.2847, -0.2961),
+        comparison('volatility', 'Показник волатильності (річний)', 0.2196, 0.1904),
+        comparison('expectedMonthly', 'Прогнозований місячний дохід', 0.0198, 0.0228),
+        comparison('expectedYearly', 'Прогнозований річний дохід', 0.237, 0.274),
     ],
     weights: { baseWeights: [0.6, 0.4], optimizedWeights: { AAPL: 0.9, MSFT: 0.1 } },
 };
 
 const serve = (optimisation: () => { status: number; data?: unknown }) =>
     fakeApi((request) => {
-        if (request.url === 'portfolio/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
-        if (request.url === 'statistics/opt/5') return optimisation();
+        if (request.url === 'portfolios/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
+        if (request.url === 'portfolios/5/optimisation') return optimisation();
         return { status: 404 };
     });
 
