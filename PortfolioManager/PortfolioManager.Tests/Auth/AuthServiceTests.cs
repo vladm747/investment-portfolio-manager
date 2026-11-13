@@ -80,6 +80,68 @@ public class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task A_changed_email_replaces_the_stored_email_and_user_name_and_shows_in_the_tokens_and_profile()
+    {
+        var first = await SignInOlena();
+
+        var second = await _host.SignInAsync(Olena with { Email = "olena.new@example.com" });
+
+        Assert.Equal("olena.new@example.com", second.User.Email);
+        var stored = (await _host.Users.FindByIdAsync(first.User.Id))!;
+        Assert.Equal("olena.new@example.com", stored.Email);
+        Assert.Equal("olena.new@example.com", stored.UserName);
+        Assert.True(stored.EmailConfirmed);
+        Assert.Equal(first.User.Id, (await _host.Users.FindByEmailAsync("olena.new@example.com"))!.Id);
+        Assert.Equal(first.User.Id, (await _host.Users.FindByNameAsync("olena.new@example.com"))!.Id);
+        Assert.Null(await _host.Users.FindByEmailAsync(Email));
+        Assert.Null(await _host.Users.FindByNameAsync(Email));
+    }
+
+    [Fact]
+    public async Task The_old_address_is_free_again_for_another_Google_account_after_the_email_changed()
+    {
+        var olena = await SignInOlena();
+        await _host.SignInAsync(Olena with { Email = "olena.new@example.com" });
+
+        // Someone else now holds the address Olena left; they get their own account, not a rejection.
+        var newcomer = await _host.SignInAsync(new GoogleIdentity("google-sub-newcomer", Email, true, "Новачок"));
+
+        Assert.NotEqual(olena.User.Id, newcomer.User.Id);
+        Assert.Equal(Email, newcomer.User.Email);
+        Assert.Equal(2, await CountUsers());
+    }
+
+    [Fact]
+    public async Task A_changed_email_already_used_by_another_account_leaves_the_account_as_it_was()
+    {
+        var olena = await SignInOlena();
+        var ivan = await _host.SignInAsync(new GoogleIdentity("google-sub-ivan", "ivan@example.com", true, "Іван Мельник"));
+
+        // Olena's Google account now reports the address Ivan's account already has.
+        var again = await _host.SignInAsync(Olena with { Email = "ivan@example.com" });
+
+        Assert.Equal(olena.User.Id, again.User.Id);
+        Assert.Equal(Email, again.User.Email);
+        var stored = (await _host.Users.FindByIdAsync(olena.User.Id))!;
+        Assert.Equal(Email, stored.Email);
+        Assert.Equal(Email, stored.UserName);
+        Assert.Equal(ivan.User.Id, (await _host.Users.FindByEmailAsync("ivan@example.com"))!.Id);
+        Assert.Equal(2, await CountUsers());
+    }
+
+    [Fact]
+    public async Task A_change_of_letter_case_alone_is_not_a_changed_email()
+    {
+        var first = await SignInOlena();
+
+        var second = await _host.SignInAsync(Olena with { Email = Email.ToUpperInvariant() });
+
+        Assert.Equal(first.User.Id, second.User.Id);
+        Assert.Equal(Email, second.User.Email);
+        Assert.Equal(Email, (await _host.Users.FindByIdAsync(first.User.Id))!.UserName);
+    }
+
+    [Fact]
     public async Task A_different_Google_account_gets_a_different_user()
     {
         var olena = await SignInOlena();

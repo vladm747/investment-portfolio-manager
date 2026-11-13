@@ -100,7 +100,7 @@ public class AuthService : IAuthService
     {
         var user = await _userManager.FindByLoginAsync(GoogleProvider, identity.Subject);
         if (user != null)
-            return user;
+            return await RefreshEmailAsync(user, email);
 
         user = await _userManager.FindByEmailAsync(email);
         if (user != null)
@@ -136,6 +136,39 @@ public class AuthService : IAuthService
             // Don't leave behind an account without a role or a login: it could never be used, and its e-mail would stay taken.
             await _userManager.DeleteAsync(user);
             throw;
+        }
+
+        return user;
+    }
+
+    /// <summary>
+    /// The Google account id stays, but its e-mail can change. The stored e-mail and user name follow it, so the tokens
+    /// and the profile show the current address, and the old one is not kept reserved for an account that left it.
+    /// If another account already uses the new address, this one is left exactly as it was (the sign-in still works):
+    /// two accounts must not share an address.
+    /// </summary>
+    private async Task<User> RefreshEmailAsync(User user, string email)
+    {
+        // Addresses are case-insensitive: a difference in case alone is not a change.
+        if (string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+            return user;
+
+        var byEmail = await _userManager.FindByEmailAsync(email);
+        var byName = await _userManager.FindByNameAsync(email);
+        if ((byEmail != null && byEmail.Id != user.Id) || (byName != null && byName.Id != user.Id))
+            return user;
+
+        var (oldEmail, oldUserName, oldEmailConfirmed) = (user.Email, user.UserName, user.EmailConfirmed);
+        user.Email = email;
+        user.UserName = email;
+        user.EmailConfirmed = true; // Google vouched for this address (checked in SignInWithGoogle)
+
+        var updated = await _userManager.UpdateAsync(user);
+        if (!updated.Succeeded)
+        {
+            // Not saved (e.g. the address was taken a moment ago): put the old values back, because the tokens
+            // issued next are built from this object and must match what is stored.
+            (user.Email, user.UserName, user.EmailConfirmed) = (oldEmail, oldUserName, oldEmailConfirmed);
         }
 
         return user;
