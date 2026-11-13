@@ -37,7 +37,9 @@ public class Program
         builder.Services.AddScoped<IPortfolioRepository, PortfolioRepository>();
         builder.Services.AddScoped<IStockSymbolRepository, StockSymbolRepository>();
         builder.Services.AddScoped<IStockRepository, StockRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IAdminService, AdminService>();
         builder.Services.AddScoped<IPortfolioService, PortfolioService>();
         builder.Services.AddScoped<IPortfolioStatisticService, PortfolioStatisticService>();
         builder.Services.AddScoped<IStockService, StockService>();
@@ -79,25 +81,26 @@ public class Program
         builder.Services.AddSingleton(Options.Create(jwtSettings));
         builder.Services.AddSingleton(TimeProvider.System);
 
+        // Google sign-in is the only way to get a token: POST api/auth/google exchanges Google's ID token for ours.
+        // The client ID is required (startup fails without it); Auth:AdminEmails lists who becomes an admin.
+        var googleSettings = GoogleAuthSettings.FromConfiguration(builder.Configuration);
+        builder.Services.AddSingleton(googleSettings);
+        builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
+
         builder.Services.AddIdentity<User, IdentityRole>(options =>
             {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-                // Defaults made explicit: 5 wrong passwords lock the account for 5 minutes.
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                options.User.RequireUniqueEmail = true;
+                // The user name is the e-mail Google verified, so it may contain anything an address can
+                // (Identity would refuse an apostrophe, for one, and that person could never sign in).
+                options.User.AllowedUserNameCharacters = string.Empty;
             })
-            .AddEntityFrameworkStores<PortfolioManagerDbContext>()
-            .AddErrorDescriber<UkrainianIdentityErrorDescriber>()
-            .AddDefaultTokenProviders();
+            .AddEntityFrameworkStores<PortfolioManagerDbContext>();
 
         builder.Services
-            // Roles are checked where they matter, with [Authorize(Roles = ...)] on the action
-            // (see UserController.GetAllUsersAsync). The unused "ElevatedRights" policy is gone.
+            // Roles are checked where they matter, with [Authorize(Roles = ...)] (see AdminController).
             .AddAuthorization()
-            // JWT bearer is the only way in. There is no cookie or external (Google) sign-in scheme.
+            // Every request is authenticated by JWT bearer. There is no external-login (Google) scheme: Google's
+            // token is checked by IGoogleTokenValidator once, at sign-in, and exchanged for this API's own JWT.
             .AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -115,9 +118,6 @@ public class Program
                     ClockSkew = TimeSpan.Zero
                 };
             });
-
-        builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
-            opt.TokenLifespan = TimeSpan.FromHours(1));
         #endregion
 
         // Swagger describes every route and lets anyone try them, so it exists only while developing:

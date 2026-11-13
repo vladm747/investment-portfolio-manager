@@ -1,6 +1,6 @@
 namespace PortfolioManager.Common.DTO.Auth;
 
-/// <summary>Returned by sign-up, sign-in and refresh.</summary>
+/// <summary>Returned by the Google sign-in and by refresh.</summary>
 public class AuthResultDTO
 {
     public string AccessToken { get; set; } = string.Empty;

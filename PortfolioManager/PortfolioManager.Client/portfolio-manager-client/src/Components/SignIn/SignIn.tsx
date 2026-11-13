@@ -1,40 +1,28 @@
 import * as React from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import CircularProgress from '@mui/material/CircularProgress';
 import Link from '@mui/material/Link';
-import TextField from '@mui/material/TextField';
-import {Link as RouterLink, useLocation} from "react-router-dom";
+import Typography from '@mui/material/Typography';
+import {Link as RouterLink} from "react-router-dom";
 import {useAuth} from "../../Auth/AuthProvider";
 import {getErrorMessage} from "../../Services/errors";
 import {usePageTitle} from "../../Hooks/usePageTitle";
 import AuthLayout from "../Layout/AuthLayout";
-import PasswordField from "../Shared/PasswordField";
+import GoogleSignInButton from "../Shared/GoogleSignInButton";
 
+/** The only way in: there are no passwords. A first sign-in creates the account. */
 function SignIn() {
     usePageTitle('Вхід');
-    const { signIn } = useAuth();
-    const location = useLocation();
+    const { signInWithGoogle } = useAuth();
     const [error, setError] = React.useState<string | null>(null);
     const [submitting, setSubmitting] = React.useState(false);
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const email = String(data.get('email') ?? '').trim();
-        const password = String(data.get('password') ?? '');
-
-        if (!email || !password) {
-            setError('Вкажіть пошту та пароль.');
-            return;
-        }
-
+    const handleCredential = async (credential: string) => {
         setError(null);
         setSubmitting(true);
         try {
             // On success the route guard takes the user to the page they wanted, or to the portfolio list.
-            await signIn({ email, password });
+            await signInWithGoogle(credential);
         } catch (e) {
             setError(getErrorMessage(e, 'Не вдалося увійти. Спробуйте ще раз.'));
             setSubmitting(false);
@@ -44,52 +32,31 @@ function SignIn() {
     return (
         <AuthLayout
             title="Вхід"
-            subtitle="Увійдіть, щоб побачити свої портфелі"
+            subtitle="Увійдіть через акаунт Google, щоб побачити свої портфелі"
             footer={
                 <>
-                    Немає акаунта?{' '}
-                    <Link component={RouterLink} to="/sign-up" state={location.state}>
-                        Зареєструватися
+                    Входячи, ви погоджуєтесь з тим, як ми обробляємо дані:{' '}
+                    <Link component={RouterLink} to="/privacy">
+                        політика конфіденційності
                     </Link>
                 </>
             }
         >
-            <Box component="form" noValidate onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                    required
-                    fullWidth
-                    id="email"
-                    label="Пошта"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    autoFocus
-                    disabled={submitting}
-                />
-                <PasswordField
-                    required
-                    fullWidth
-                    name="password"
-                    label="Пароль"
-                    id="password"
-                    autoComplete="current-password"
-                    disabled={submitting}
-                />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <GoogleSignInButton onCredential={handleCredential} disabled={submitting} />
+                {submitting && (
+                    <Typography variant="body2" color="text.secondary" align="center" role="status">
+                        Входимо…
+                    </Typography>
+                )}
                 {error && (
                     <Alert severity="error" role="alert">
                         {error}
                     </Alert>
                 )}
-                <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    disabled={submitting}
-                    startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
-                    sx={{ mt: 1 }}
-                >
-                    {submitting ? 'Входимо…' : 'Увійти'}
-                </Button>
+                <Typography variant="body2" color="text.secondary" align="center">
+                    Окремого пароля немає. Акаунт створюється автоматично під час першого входу.
+                </Typography>
             </Box>
         </AuthLayout>
     );

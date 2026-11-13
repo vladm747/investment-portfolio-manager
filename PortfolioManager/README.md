@@ -13,13 +13,38 @@ which both launch profiles set); on Azure it reads App Service settings.
 | `JWT_SECRET` | yes, at least 32 bytes | user-secrets | App setting `JWT_SECRET` |
 | `JWT_EXPIRES_MINUTES` | no, default 15 | user-secrets | App setting `JWT_EXPIRES_MINUTES` |
 | `JWT_REFRESH_EXPIRES_DAYS` | no, default 7 | | App setting `JWT_REFRESH_EXPIRES_DAYS` |
+| `Authentication:Google:ClientId` | yes, startup fails without it | user-secrets | App setting `Authentication__Google__ClientId` |
+| `Auth:AdminEmails:0`, `:1`, ... | no; nobody is an admin without it | user-secrets | App settings `Auth__AdminEmails__0`, ... |
 | `Cors:Origins:0`, `:1`, ... | no, defaults to the two Azure sites | | App settings `Cors__Origins__0`, ... |
 | `MathModule:BaseUrl` | yes, startup fails without it | `http://localhost:8011` in `appsettings.Development.json` | App setting `MathModule__BaseUrl`: the private address of the Container App (see [Hosting](#hosting-the-math-service-on-azure)) |
 | `MathModule:ApiKey` | must equal `MATH_API_KEY` of the math service; leave unset only while the service has none (never on Azure) | user-secrets | App setting `MathModule__ApiKey` |
 | `MathModule:Timeout`, `:RetryCount`, `:RetryDelay` | no, default `00:01:30`, `2`, `00:00:01` | | App settings `MathModule__Timeout`, ... |
 
-Sign-in is by e-mail and password only: the API issues its own JWT access and refresh tokens. (There used to be an
-unfinished Google sign-in; it never issued a token and is removed, together with its settings.)
+### Sign-in: Google only
+
+There are no passwords. The page shows Google's "Sign in with Google" button and sends the ID token it gets to
+`POST api/auth/google` `{credential}`. The API checks the token with Google (signature, issuer, expiry and that its
+audience is `Authentication:Google:ClientId`; `IGoogleTokenValidator`, which the tests replace) and answers with its own
+JWT access token and rotating refresh token, as before. No client secret and no redirect URI are involved, so the
+only Google setting is the public client ID.
+
+- **Accounts.** Google's account id (`sub`) is the key, kept in `AspNetUserLogins` (provider `Google`). A first
+  sign-in creates an `investor` account (`UserName = Email = the verified Google e-mail`, name from Google, cut to 50
+  characters). An older account with the same e-mail (made when passwords existed) is linked to the Google account
+  and its password is removed. If that e-mail is already linked to a *different* Google account, the sign-in is refused
+  (401): the address has changed hands, and the old owner's data is not handed over. An e-mail Google has not verified
+  is refused too.
+- **Admins.** An e-mail in `Auth:AdminEmails` gets the `admin` role when it signs in, so the role is already in the first
+  access token. It is only ever granted: taking an e-mail off the list does not remove the role. Case is ignored.
+- **Switching an account off.** Set `LockoutEnd` of the user far in the future (there is no password to lock out any
+  more); sign-in and refresh then answer 401.
+- **Local setup.** Create an OAuth client ID of type *Web application* in Google Cloud (authorized JavaScript origins
+  `http://localhost:3000`, `http://localhost` and the deployed client; no redirect URIs), then:
+
+```bash
+dotnet user-secrets set "Authentication:Google:ClientId" "<id>.apps.googleusercontent.com" --project PortfolioManager.API
+dotnet user-secrets set "Auth:AdminEmails:0" "<your Google e-mail>" --project PortfolioManager.API
+```
 
 Swagger (`/swagger`) exists only when `ASPNETCORE_ENVIRONMENT=Development`; in any other environment it is neither
 registered nor served.
@@ -162,8 +187,9 @@ are numbers: `api/portfolios/abc` is a 404.
 | `DELETE api/positions/{id}` | Remove a position | 204 |
 | `GET api/portfolios/{id}/growth` | Daily value of the portfolio since its first purchase | 200 |
 | `GET api/portfolios/{id}/optimisation` | The portfolio against the max-Sharpe one: nine metrics, each with a `metricKey`, and both sets of weights | 200 |
-| `GET api/user/me`, `GET api/user/users` (admin), `DELETE api/user/user` | The signed-in user, all users, delete own account | 200 |
-| `POST api/auth/signup`, `signin`, `refresh-token`, `sign-out` | Account and tokens | 200 / 204 |
+| `GET api/user/me`, `DELETE api/user/user` | The signed-in user, delete own account | 200 |
+| `GET api/admin/users` (admin) | Totals (users, admins, active in the last 7 days, portfolios) and one row per user: id, name, e-mail, roles, number of portfolios, last active time (UTC; from `User.TokenCreated`, null if never signed in). Profile and counts only; read-only | 200 |
+| `POST api/auth/google` `{credential}`, `POST api/auth/refresh-token`, `POST api/auth/sign-out` | Sign in with Google's ID token (the only way in), refresh the session, sign out | 200 / 204 |
 
 The routes before this release (`api/portfolio/{id}`, `api/stock/...`, `api/stock/info/{id}` as a GET that wrote data,
 `api/statistics/opt|growth/{id}`, and a `POST api/portfolios` that listed) are gone: they answer 404.
@@ -174,8 +200,9 @@ The routes before this release (`api/portfolio/{id}`, `api/stock/...`, `api/stoc
   request. A record of another user is answered with 404, exactly like one that does not exist
   (`NotFoundException`). The repositories have no lookup by id alone: `GetOwnedAsync`, `IsOwnedByAsync` and
   `FindOwnedAsync` always filter by the owner in the SQL `WHERE`.
-- **Roles.** `GET api/user/users` is `[Authorize(Roles = "admin")]` (403 for an investor). Everything else that needs
-  sign-in only needs a valid token.
+- **Roles.** `AdminController` (`GET api/admin/users`) is `[Authorize(Roles = "admin")]` (403 for an investor). Everything
+  else that needs sign-in only needs a valid token. There is no endpoint that lists users for a non-admin: the old
+  `GET api/user/users` is gone.
 - **Valuation.** `PositionValuation` (BLL/Valuation) is the one place that calculates value, gain and gain %, and it
   guards against a zero entry value. Nothing derived is stored: a position keeps its quantity, entry price and current
   price, and its value and gain, like a portfolio's totals, are calculated on every read (`Stock.ToDto()`,

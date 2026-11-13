@@ -1,6 +1,5 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using PortfolioManager.BLL.Exceptions;
 using PortfolioManager.BLL.Interfaces.Auth;
 using PortfolioManager.BLL.Mapping;
@@ -26,12 +25,6 @@ public class UserService: IUserService
             throw new UserNotFoundException("User Not Found");
 
         return user.ToDto(await _userManager.GetRolesAsync(user));
-    }
-
-    public async Task<IEnumerable<UserDTO>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        var users = await _userManager.Users.ToListAsync(cancellationToken);
-        return users.Select(user => user.ToDto()).ToList();
     }
 
     public async Task<IdentityResult> DeleteAsync(ClaimsPrincipal userPrincipal, string email)

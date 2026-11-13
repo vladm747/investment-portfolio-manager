@@ -26,7 +26,7 @@ public class AccessApiTests : ApiTestBase
     [InlineData("GET", "api/portfolios/1/optimisation")]
     [InlineData("GET", "api/portfolios/1/growth")]
     [InlineData("GET", "api/user/me")]
-    [InlineData("GET", "api/user/users")]
+    [InlineData("GET", "api/admin/users")]
     public async Task Without_a_token_every_endpoint_is_401(string method, string url)
     {
         using var client = Api.ClientFor(null);
@@ -63,30 +63,23 @@ public class AccessApiTests : ApiTestBase
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    // ---- row 9: the list of users -----------------------------------------------------------------------------
+    // ---- the old routes -----------------------------------------------------------------------------------------
 
-    [Fact]
-    public async Task An_investor_cannot_list_the_users()
+    [Theory]
+    [InlineData("POST", "api/auth/signup")]
+    [InlineData("POST", "api/auth/signin")]
+    [InlineData("POST", "api/auth/signin-google")]
+    [InlineData("GET", "api/auth")]
+    [InlineData("GET", "api/user/users")]
+    public async Task The_password_sign_in_and_the_open_user_list_are_gone(string method, string url)
     {
-        var investor = await Api.SignUpAsync();
-        using var client = Api.ClientFor(investor);
-
-        using var response = await client.GetAsync("api/user/users");
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task An_admin_can_list_the_users()
-    {
-        var investor = await Api.SignUpAsync("Олена Коваль");
+        // Signed in as an admin, so only a missing route (not a missing token or role) can explain the answer.
         var admin = await Api.SignUpAdminAsync();
         using var client = Api.ClientFor(admin);
 
-        var users = await ReadAsync<List<UserDTO>>(await client.GetAsync("api/user/users"));
+        using var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), url));
 
-        Assert.Contains(users, user => user.Email == investor.Email);
-        Assert.Contains(users, user => user.Email == admin.Email);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

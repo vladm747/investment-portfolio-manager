@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 import { sessionStore } from './Auth/session';
-import { authResult, fakeApi } from './testing/fakeApi';
+import { adminUser, authResult, fakeApi } from './testing/fakeApi';
 
 beforeEach(() => {
   sessionStore.end();
@@ -16,7 +16,63 @@ test('a visitor who is not signed in is sent to the sign-in page', async () => {
 
   expect(await screen.findByRole('heading', { name: 'Вхід' })).toBeInTheDocument();
   expect(window.location.pathname).toBe('/login');
-  expect(screen.getByRole('link', { name: 'Зареєструватися' })).toBeInTheDocument();
+});
+
+test('there is no sign-up page any more: the old address is a page that does not exist', async () => {
+  window.history.pushState({}, '', '/sign-up');
+
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Сторінку не знайдено' })).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Реєстрація' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Увійти' })).toBeInTheDocument();
+});
+
+test('the privacy policy is public: a visitor who is not signed in can read it', async () => {
+  window.history.pushState({}, '', '/privacy');
+
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Політика конфіденційності', level: 1 })).toBeInTheDocument();
+  expect(window.location.pathname).toBe('/privacy');
+  expect(screen.getByText(/Пароля в нас немає/)).toBeInTheDocument();
+  expect(document.title).toBe('Політика конфіденційності · Portfolio Manager');
+});
+
+test('an administrator opens the user dashboard at /admin/users', async () => {
+  sessionStore.start(authResult(1, adminUser));
+  fakeApi((request) =>
+    request.url === 'admin/users'
+      ? { status: 200, data: { stats: { totalUsers: 1, admins: 1, activeLast7Days: 1, totalPortfolios: 0 }, users: [{ id: 'admin-1', fullName: 'Адмін Тестовий', email: 'admin@example.com', roles: ['investor', 'admin'], portfolioCount: 0, lastActiveAt: '2026-11-12T10:00:00Z' }] } }
+      : { status: 404 }
+  );
+  window.history.pushState({}, '', '/admin/users');
+
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Користувачі', level: 1 })).toBeInTheDocument();
+  expect(await screen.findByText('admin@example.com')).toBeInTheDocument();
+  expect(window.location.pathname).toBe('/admin/users');
+});
+
+test('an investor who types the admin address is sent to the portfolio list and never asks the API', async () => {
+  sessionStore.start(authResult(1));
+  const requests = fakeApi(() => ({ status: 200, data: [] }));
+  window.history.pushState({}, '', '/admin/users');
+
+  render(<App />);
+
+  expect(await screen.findByText('Ще немає портфелів')).toBeInTheDocument();
+  expect(window.location.pathname).toBe('/');
+  expect(requests.map((request) => request.url)).not.toContain('admin/users');
+});
+
+test('a visitor who is not signed in cannot open the admin address either', async () => {
+  window.history.pushState({}, '', '/admin/users');
+
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Вхід' })).toBeInTheDocument();
 });
 
 const position = {

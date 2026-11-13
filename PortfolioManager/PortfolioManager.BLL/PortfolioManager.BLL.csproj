@@ -13,6 +13,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <!-- Validates the ID token that "Sign in with Google" gives the browser. -->
+      <PackageReference Include="Google.Apis.Auth" Version="1.78.0" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\PortfolioManager.Common\PortfolioManager.Common.csproj" />
       <ProjectReference Include="..\PortfolioManager.DAL\PortfolioManager.DAL.csproj" />
       <ProjectReference Include="..\PortfolioManager.MathModule.Client\PortfolioManager.MathModule.Client.csproj" />

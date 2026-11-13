@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PortfolioManager.BLL.Exceptions;
 using PortfolioManager.BLL.Interfaces.Auth;
-using PortfolioManager.DAL.Context;
 
 namespace PortfolioManager.API.Controllers;
 
@@ -17,15 +16,6 @@ public class UserController(IUserService service) : ControllerBase
     {
         var result = await service.GetCurrentUserAsync(HttpContext.User);
 
-        return Ok(result);
-    }
-
-    /// <summary>Everybody's name and email: for administrators only. A signed-in investor gets 403.</summary>
-    [HttpGet("users")]
-    [Authorize(Roles = RoleSeed.AdminRoleName)]
-    public async Task<IActionResult> GetAllUsersAsync(CancellationToken cancellationToken)
-    {
-        var result = await service.GetAllAsync(cancellationToken);
         return Ok(result);
     }
 

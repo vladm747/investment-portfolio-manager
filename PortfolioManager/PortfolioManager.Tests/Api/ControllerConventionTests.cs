@@ -85,11 +85,30 @@ public class ControllerConventionTests
     }
 
     [Fact]
-    public void Listing_all_users_is_for_admins_only()
+    public void The_admin_controller_is_for_admins_only_and_no_action_in_it_opens_up_again()
     {
-        var action = typeof(UserController).GetMethod(nameof(UserController.GetAllUsersAsync))!;
-
-        var authorize = Assert.Single(action.GetCustomAttributes<AuthorizeAttribute>());
+        var authorize = Assert.Single(typeof(AdminController).GetCustomAttributes<AuthorizeAttribute>());
         Assert.Equal("admin", authorize.Roles);
+        Assert.Null(typeof(AdminController).GetCustomAttribute<AllowAnonymousAttribute>());
+        Assert.NotEmpty(Actions(typeof(AdminController)));
+        Assert.All(Actions(typeof(AdminController)), action =>
+        {
+            Assert.Null(action.GetCustomAttribute<AllowAnonymousAttribute>());
+            // The class-level rule is the whole rule: an action-level [Authorize] could only be there to change it.
+            Assert.Empty(action.GetCustomAttributes<AuthorizeAttribute>());
+        });
+    }
+
+    [Fact]
+    public void Only_the_auth_controller_is_open_to_anonymous_callers_and_the_user_controller_lists_nobody()
+    {
+        var anonymous = Controllers
+            .Where(type => type.GetCustomAttribute<AllowAnonymousAttribute>() is not null)
+            .Select(type => type.Name);
+        Assert.Equal(new[] { nameof(AuthController) }, anonymous);
+
+        // Everybody's profile belongs to the admin controller; the user controller only knows the caller.
+        var userActions = Actions(typeof(UserController)).Select(action => action.Name).OrderBy(name => name);
+        Assert.Equal(new[] { nameof(UserController.DeleteAccount), nameof(UserController.GetCurrentUser) }, userActions);
     }
 }

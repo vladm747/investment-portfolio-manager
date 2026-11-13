@@ -70,10 +70,10 @@ test('a refresh retries with the token another tab saved in the meantime', async
     expect(sessionStore.getAccessToken()).toBe('access-3');
 });
 
-test('a failed sign-in is not followed by a refresh attempt', async () => {
-    const requests = fakeApi(() => ({ status: 401, data: { message: 'Невірна пошта або пароль.' } }));
+test('a refused Google sign-in is not followed by a refresh attempt', async () => {
+    const requests = fakeApi(() => ({ status: 401, data: { message: 'Не вдалося підтвердити вхід через Google.' } }));
 
-    await expect(http.post('auth/signin', { email: 'a@b.c', password: 'x' })).rejects.toBeDefined();
+    await expect(http.post('auth/google', { credential: 'tampered' })).rejects.toBeDefined();
 
     expect(requests).toHaveLength(1);
 });
