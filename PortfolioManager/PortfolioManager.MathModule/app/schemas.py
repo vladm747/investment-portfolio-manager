@@ -7,7 +7,7 @@ The v1 contract uses camelCase JSON. The legacy models describe what the .NET AP
 from __future__ import annotations
 
 import datetime as dt
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
@@ -104,6 +104,76 @@ class StockResponse(ApiModel):
     currency: str | None
     sector: str | None
     price: float | None
+
+
+class ForecastRequest(ApiModel):
+    symbols: list[SymbolStr] = Field(min_length=1, max_length=100)
+    weights: list[float] = Field(min_length=1, max_length=100, description="Current weights, same order as symbols, sum 1.")
+    include_assets: bool = Field(True, description="Also forecast each stock; false forecasts the portfolio only.")
+
+
+class MetricForecastOut(ApiModel):
+    """A fraction (0.18 = 18 %). ``low`` and ``high`` bound the 80% interval; ``previous`` is the same metric over the
+    last ``horizonDays`` trading days. null where undefined."""
+
+    value: float | None
+    low: float | None
+    high: float | None
+    previous: float | None
+
+
+class RiskForecastOut(ApiModel):
+    """Over the next ``horizonDays`` trading days: volatility of daily returns (annualised), one-day VaR 95% (a
+    positive loss: returns fall below minus this on 5% of the days) and maximum drawdown (positive)."""
+
+    volatility: MetricForecastOut
+    value_at_risk_95: MetricForecastOut
+    max_drawdown: MetricForecastOut
+    out_of_domain: bool = Field(description="A feature is outside the range seen in training, or quotes look stale.")
+    out_of_domain_features: list[str]
+    stale_quotes: bool
+
+
+class AssetForecastOut(ApiModel):
+    symbol: str
+    weight: float
+    forecast: RiskForecastOut | None = Field(description="null when the stock's own price history is too short.")
+
+
+class ForecastModelInfo(ApiModel):
+    version: str
+    trained_through: dt.date = Field(description="Last price date of the training data.")
+    horizon_days: int
+    interval_level: float
+    age_days: int = Field(description="Days from trainedThrough to asOf.")
+    stale_after_days: int
+    stale: bool = Field(description="ageDays > staleAfterDays: the model should be trained again on newer data.")
+
+
+class ForecastResponse(ApiModel):
+    model: ForecastModelInfo
+    as_of: dt.date = Field(description="Last trading day of the prices the forecast starts from.")
+    trading_days: int = Field(description="Daily returns in the portfolio's common history.")
+    portfolio: RiskForecastOut
+    assets: list[AssetForecastOut]
+    warnings: list[str] = Field(
+        description="model_stale, portfolio_out_of_domain, assets_out_of_domain, assets_without_forecast."
+    )
+
+
+class ForecastModelResponse(ApiModel):
+    version: str
+    created: str
+    trained_through: dt.date
+    last_sample: dt.date = Field(description="Last day whose future was known in training: the last training example.")
+    horizon_days: int
+    interval_level: float
+    stale_after_days: int
+    features: list[str]
+    training_stocks: int
+    training_portfolios: int
+    chosen_variants: dict[str, Any]
+    evaluation: dict[str, Any] = Field(description="Walk-forward test summary from meta.json (criteria, DM tests).")
 
 
 class LegacyStock(BaseModel):

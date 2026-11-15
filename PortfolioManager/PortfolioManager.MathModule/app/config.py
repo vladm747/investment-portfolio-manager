@@ -7,8 +7,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
+from pathlib import Path
 
 TRADING_DAYS_PER_YEAR = 252
+# The risk forecast model that ships with the service (in git and in the Docker image).
+BUNDLED_MODEL_DIR = Path(__file__).resolve().parents[1] / "models" / "risk-v1"
 # With REQUIRE_API_KEY, anything shorter than a 24-byte random value in base64 is refused.
 MIN_REQUIRED_KEY_LENGTH = 32
 
@@ -29,6 +32,8 @@ class Settings:
       MIN_HISTORY_DAYS           fewest trading days of common history the optimiser accepts; default 252
       HISTORY_CACHE_SECONDS      how long downloaded price history is reused; default 12 hours
       QUOTE_CACHE_SECONDS        how long latest prices and stock info are reused; default 5 minutes
+      FORECAST_MODEL_DIR         folder of the risk forecast model (meta.json and three LightGBM files); default
+                                 models/risk-v1 next to app/, which the Docker image contains
       LOG_LEVEL                  default INFO
     """
 
@@ -40,6 +45,7 @@ class Settings:
     min_history_days: int = TRADING_DAYS_PER_YEAR
     history_cache_seconds: float = 12 * 60 * 60
     quote_cache_seconds: float = 5 * 60
+    forecast_model_dir: Path = BUNDLED_MODEL_DIR
     log_level: str = "INFO"
 
     @classmethod
@@ -100,6 +106,7 @@ class Settings:
             min_history_days=min_history_days,
             history_cache_seconds=number("HISTORY_CACHE_SECONDS", defaults.history_cache_seconds),
             quote_cache_seconds=number("QUOTE_CACHE_SECONDS", defaults.quote_cache_seconds),
+            forecast_model_dir=Path(text("FORECAST_MODEL_DIR") or defaults.forecast_model_dir),
             log_level=(text("LOG_LEVEL") or defaults.log_level).upper(),
         )
 

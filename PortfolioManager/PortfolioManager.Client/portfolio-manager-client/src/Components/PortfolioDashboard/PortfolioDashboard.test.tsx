@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import PortfolioDashboard from './PortfolioDashboard';
 import { fakeApi } from '../../testing/fakeApi';
 import { makeStock, renderWithProviders } from '../../testing/renderWithProviders';
+import { makeRiskForecast } from '../../testing/riskForecast';
 
 const plain = (text: string | null) => (text ?? '').replace(/[  ]/g, ' ');
 const pageText = () => plain(document.body.textContent);
@@ -28,6 +29,7 @@ function serve({ stocks = [aapl, msft, jnj], handle }: Options = {}) {
         if (url === 'portfolios/5') return { status: 200, data: { id: 5, name: 'Дивідендний' } };
         if (url === 'portfolios/5/positions') return { status: 200, data: stocks };
         if (url === 'portfolios/5/growth') return { status: 200, data: growth };
+        if (url === 'portfolios/5/forecast') return { status: 200, data: makeRiskForecast() };
         return { status: 200, data: {} };
     });
 }
@@ -61,6 +63,16 @@ test('shows the portfolio, its totals and its positions', async () => {
     expect(screen.getByRole('navigation', { name: 'Навігаційний ланцюжок' })).toHaveTextContent('Портфелі');
 });
 
+test('the risk forecast for the next three months sits under the totals and links to its page', async () => {
+    serve();
+    renderDashboard();
+
+    const card = await screen.findByRole('region', { name: 'Ризик на 3 місяці' });
+
+    expect(await within(card).findByRole('region', { name: 'Волатильність (річна)' })).toHaveTextContent('19,1%');
+    expect(within(card).getByRole('link', { name: 'Детальніше' })).toHaveAttribute('href', '/portfolios/5/risk');
+});
+
 test('the growth chart has a period switch once the data has arrived', async () => {
     serve();
     renderDashboard();
@@ -77,8 +89,9 @@ test('an empty portfolio says so, and offers nothing that needs positions', asyn
     expect(await screen.findByText('У портфелі ще немає позицій')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Оптимізувати' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('button', { name: 'Оновити ціни' })).toBeDisabled();
-    // The math service would reject an empty portfolio, so the chart is not even requested.
+    // The math service would reject an empty portfolio, so the chart and the forecast are not even requested.
     expect(requests.some((request) => request.url === 'portfolios/5/growth')).toBe(false);
+    expect(requests.some((request) => request.url === 'portfolios/5/forecast')).toBe(false);
 });
 
 test('positions are sorted by value at first and by any column on request', async () => {

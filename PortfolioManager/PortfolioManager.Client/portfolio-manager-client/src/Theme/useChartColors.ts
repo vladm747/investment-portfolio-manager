@@ -8,6 +8,7 @@ export function useChartColors() {
     return {
         accent: app.accent,
         neutral: app.chart.neutral,
+        reference: app.chart.reference,
         grid: app.chart.grid,
         axis: app.chart.axis,
         categorical: app.chart.categorical,

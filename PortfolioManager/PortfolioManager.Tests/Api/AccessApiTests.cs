@@ -25,6 +25,7 @@ public class AccessApiTests : ApiTestBase
     [InlineData("DELETE", "api/positions/1")]
     [InlineData("GET", "api/portfolios/1/optimisation")]
     [InlineData("GET", "api/portfolios/1/growth")]
+    [InlineData("GET", "api/portfolios/1/forecast")]
     [InlineData("GET", "api/user/me")]
     [InlineData("GET", "api/admin/users")]
     public async Task Without_a_token_every_endpoint_is_401(string method, string url)

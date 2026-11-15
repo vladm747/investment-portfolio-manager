@@ -12,9 +12,10 @@ import {GuestOnly, RequireAuth, RequireRole} from "./Auth/RouteGuards";
 import {ADMIN_ROLE} from "./Auth/roles";
 import {ThemeModeProvider} from "./Theme/ThemeModeProvider";
 
-// The two pages with charts load on demand, so the sign-in screen does not download Recharts.
+// The pages with charts load on demand, so the sign-in screen does not download Recharts.
 const PortfolioDashboard = lazy(() => import("./Components/PortfolioDashboard/PortfolioDashboard"));
 const OptimisationPage = lazy(() => import("./Components/Optimisation/OptimisationPage"));
+const RiskPage = lazy(() => import("./Components/Risk/RiskPage"));
 // Only admins ever open this one.
 const UsersPage = lazy(() => import("./Components/Admin/UsersPage"));
 
@@ -42,6 +43,7 @@ function App() {
                                     <Route path="/" element={<PortfoliosPage/>} />
                                     <Route path="/portfolios/:id" element={<PortfolioDashboard/>} />
                                     <Route path="/portfolios/:id/optimisation" element={<OptimisationPage/>} />
+                                    <Route path="/portfolios/:id/risk" element={<RiskPage/>} />
                                     <Route element={<RequireRole role={ADMIN_ROLE}/>}>
                                         <Route path="/admin/users" element={<UsersPage/>} />
                                     </Route>

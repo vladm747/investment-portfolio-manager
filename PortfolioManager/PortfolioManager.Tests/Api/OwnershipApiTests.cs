@@ -33,6 +33,7 @@ public class OwnershipApiTests : ApiTestBase
             ("refresh prices", c => c.PostAsync($"api/portfolios/{portfolio.Id}/prices/refresh", null)),
             ("optimisation", c => c.GetAsync($"api/portfolios/{portfolio.Id}/optimisation")),
             ("growth", c => c.GetAsync($"api/portfolios/{portfolio.Id}/growth")),
+            ("forecast", c => c.GetAsync($"api/portfolios/{portfolio.Id}/forecast")),
         };
 
         foreach (var (name, send) in requests)

@@ -34,6 +34,11 @@ export interface AppTokens {
         axis: string;
         /** The "before" series next to the accent one, e.g. current against optimised weights. */
         neutral: string;
+        /**
+         * A past value marked beside an accent forecast (the last three months next to the risk forecast). A grey
+         * checked against the accent for separation in each mode; lighter in dark mode, where neutral sits too close.
+         */
+        reference: string;
         /** Eight categorical colours in a fixed order; checked for colour-blind separation in both modes. */
         categorical: string[];
         /** Sectors beyond the eight colours. */
@@ -65,6 +70,7 @@ const light: AppTokens = {
         grid: '#EAECF0',
         axis: '#D0D5DD',
         neutral: '#7D8595',
+        reference: '#7D8595',
         categorical: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'],
         other: '#98A2B3',
     },
@@ -94,6 +100,7 @@ const dark: AppTokens = {
         grid: '#232831',
         axis: '#343A45',
         neutral: '#7A8394',
+        reference: '#C0C6D0',
         categorical: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'],
         other: '#6B7280',
     },

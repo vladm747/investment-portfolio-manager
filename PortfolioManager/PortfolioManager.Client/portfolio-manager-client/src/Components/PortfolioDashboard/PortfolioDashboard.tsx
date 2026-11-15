@@ -20,6 +20,7 @@ import { usePageTitle } from '../../Hooks/usePageTitle';
 import { GetPortfolioAsync } from '../../Services/PortfolioService';
 import { DeleteStock, GetAllStocksAsync, RefreshPrices } from '../../Services/StockService';
 import { getErrorMessage } from '../../Services/errors';
+import RiskForecastCard from '../Risk/RiskForecastCard';
 import ConfirmDialog from '../Shared/ConfirmDialog';
 import Delta from '../Shared/Delta';
 import ErrorState from '../Shared/ErrorState';
@@ -219,6 +220,8 @@ function PortfolioDashboardContent({ portfolioId }: { portfolioId: number }) {
                     note={best ? best.name || sectorName(best.sector) : undefined}
                 />
             </KpiGrid>
+
+            <RiskForecastCard portfolioId={portfolioId} hasPositions={hasPositions} version={version} />
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 2fr) minmax(0, 1fr)' }, gap: 2, alignItems: 'stretch' }}>
                 <GrowthChart portfolioId={portfolioId} stocks={positions} version={version} />

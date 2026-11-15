@@ -1,6 +1,6 @@
 import { bodyOf, fakeApi } from '../testing/fakeApi';
 import { CreatePortfolio, DeletePortfolio, GetAllPortfoliosAsync, GetPortfolioAsync } from './PortfolioService';
-import { GetGrowthStatsData, GetOptimisationData } from './StatisticService';
+import { GetGrowthStatsData, GetOptimisationData, GetRiskForecast } from './StatisticService';
 import { CreateStock, DeleteStock, GetAllStocksAsync, RefreshPrices, UpdateStockQuantity } from './StockService';
 
 /**
@@ -77,5 +77,10 @@ describe('statistics', () => {
     test('optimisation', async () => {
         const request = await send(() => GetOptimisationData(5));
         expect([request.method, request.url]).toEqual(['get', 'portfolios/5/optimisation']);
+    });
+
+    test('risk forecast', async () => {
+        const request = await send(() => GetRiskForecast(5));
+        expect([request.method, request.url]).toEqual(['get', 'portfolios/5/forecast']);
     });
 });

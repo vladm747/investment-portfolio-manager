@@ -22,17 +22,25 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import legacy
 from .config import Settings, get_settings
 from .errors import ServiceError, SymbolNotFound, Unauthorized
+from .forecast.model import RiskModel
+from .forecast.portfolio import RiskForecast
 from .growth import Position
 from .optimisation import OptimisationResult
 from .providers import MarketDataProvider, YahooProvider
 from .schemas import (
+    AssetForecastOut,
     ErrorResponse,
+    ForecastModelInfo,
+    ForecastModelResponse,
+    ForecastRequest,
+    ForecastResponse,
     GrowthPoint,
     GrowthRequest,
     GrowthResponse,
     HealthResponse,
     LegacyOptimisationRequest,
     LegacyStock,
+    MetricForecastOut,
     Metrics,
     MetricsPair,
     OptimisationRequest,
@@ -40,10 +48,11 @@ from .schemas import (
     Period,
     PricesRequest,
     PricesResponse,
+    RiskForecastOut,
     StockResponse,
     WeightsPair,
 )
-from .service import run_growth, run_optimisation
+from .service import ForecastRun, run_forecast, run_growth, run_optimisation
 
 logger = logging.getLogger("app")
 
@@ -63,8 +72,15 @@ def get_provider() -> MarketDataProvider:
     return YahooProvider(get_settings())
 
 
+@lru_cache
+def get_risk_model() -> RiskModel:
+    """The risk forecast model, loaded once from FORECAST_MODEL_DIR (by default the bundled models/risk-v1)."""
+    return RiskModel(get_settings().forecast_model_dir)
+
+
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 ProviderDep = Annotated[MarketDataProvider, Depends(get_provider)]
+RiskModelDep = Annotated[RiskModel, Depends(get_risk_model)]
 
 
 def require_api_key(
@@ -149,6 +165,75 @@ def stock(symbol: str, provider: ProviderDep) -> StockResponse:
     )
 
 
+def _risk_forecast(risk: RiskForecast) -> RiskForecastOut:
+    def metric(value) -> MetricForecastOut:
+        return MetricForecastOut(value=value.value, low=value.low, high=value.high, previous=value.previous)
+
+    return RiskForecastOut(
+        volatility=metric(risk.volatility),
+        value_at_risk_95=metric(risk.value_at_risk_95),
+        max_drawdown=metric(risk.max_drawdown),
+        out_of_domain=risk.out_of_domain,
+        out_of_domain_features=list(risk.out_of_domain_features),
+        stale_quotes=risk.stale_quotes,
+    )
+
+
+def _forecast_response(run: ForecastRun) -> ForecastResponse:
+    card, result = run.card, run.forecast
+    return ForecastResponse(
+        model=ForecastModelInfo(
+            version=card.version,
+            trained_through=card.trained_through,
+            horizon_days=card.horizon_days,
+            interval_level=card.interval_level,
+            age_days=run.age_days,
+            stale_after_days=card.stale_after_days,
+            stale=run.stale,
+        ),
+        as_of=result.as_of,
+        trading_days=result.trading_days,
+        portfolio=_risk_forecast(result.portfolio),
+        assets=[
+            AssetForecastOut(
+                symbol=asset.symbol,
+                weight=asset.weight,
+                forecast=_risk_forecast(asset.forecast) if asset.forecast is not None else None,
+            )
+            for asset in result.assets
+        ],
+        warnings=list(run.warnings),
+    )
+
+
+@v1_router.post("/forecast", response_model=ForecastResponse)
+def forecast(body: ForecastRequest, provider: ProviderDep, model: RiskModelDep) -> ForecastResponse:
+    """Volatility, one-day VaR 95% and maximum drawdown of the portfolio (and of each stock) over the next 63 trading
+    days, with 80% intervals, from the trained model risk-v1."""
+    run = run_forecast(provider, model, body.symbols, body.weights, body.include_assets, today=date.today())
+    return _forecast_response(run)
+
+
+@v1_router.get("/forecast/model", response_model=ForecastModelResponse)
+def forecast_model(model: RiskModelDep) -> ForecastModelResponse:
+    """What the deployed risk model is: version, training data, features and its walk-forward test results."""
+    card = model.card
+    return ForecastModelResponse(
+        version=card.version,
+        created=card.created,
+        trained_through=card.trained_through,
+        last_sample=card.last_sample,
+        horizon_days=card.horizon_days,
+        interval_level=card.interval_level,
+        stale_after_days=card.stale_after_days,
+        features=list(card.features),
+        training_stocks=card.training_stocks,
+        training_portfolios=card.training_portfolios,
+        chosen_variants=card.chosen_variants,
+        evaluation=card.evaluation,
+    )
+
+
 # ---- legacy -----------------------------------------------------------------------------------------------------
 
 
@@ -216,7 +301,9 @@ def create_app(enable_docs: bool = True) -> FastAPI:
     application = FastAPI(
         title="Portfolio Manager math service",
         version="1.0.0",
-        description="Market data from Yahoo Finance, portfolio growth and max-Sharpe optimisation.",
+        description=(
+            "Market data from Yahoo Finance, portfolio growth, max-Sharpe optimisation and a three-month risk forecast."
+        ),
         docs_url="/docs" if enable_docs else None,
         redoc_url="/redoc" if enable_docs else None,
         openapi_url="/openapi.json" if enable_docs else None,
@@ -237,6 +324,15 @@ if settings_at_start.api_key is None:
     logger.warning("MATH_API_KEY is not set: every caller is accepted. Set it wherever the service is reachable.")
 
 app = create_app(enable_docs=settings_at_start.enable_docs)
+
+# A missing or broken model stops the start here, naming the folder, instead of failing the first forecast.
+risk_model_at_start = get_risk_model()
+logger.info(
+    "Risk forecast model %s (prices to %s) loaded from %s",
+    risk_model_at_start.card.version,
+    risk_model_at_start.card.trained_through,
+    risk_model_at_start.dir,
+)
 
 
 if __name__ == "__main__":

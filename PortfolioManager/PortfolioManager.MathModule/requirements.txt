@@ -11,3 +11,7 @@ pandas==2.3.3
 scipy==1.18.1
 yfinance==1.8.0
 pyportfolioopt==1.6.0
+# Risk forecast (app/forecast): LightGBM reads the model files; it links the system's libgomp1 (see Dockerfile).
+# The model files are LightGBM's text format, which any 4.x reads. arch fits the GARCH(1,1) the model averages with.
+lightgbm==4.7.0
+arch==9.0.0

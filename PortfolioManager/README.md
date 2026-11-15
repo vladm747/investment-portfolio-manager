@@ -115,15 +115,38 @@ There is no object mapper: the three mappings between entities and DTOs are plai
 | `metrics.py` | The nine comparison metrics with their formulas (checked against quantstats in the tests) |
 | `optimisation.py` | Weight validation, common history window, max-Sharpe weights (PyPortfolioOpt) |
 | `growth.py` | Daily portfolio value from positions and closes |
+| `forecast/` | The risk forecast of the trained model: `features.py` (the model's 24 features, the same code as in training), `garch.py`, `model.py` (loads the model folder), `portfolio.py` (calendar, portfolio series, per-stock forecasts) |
 | `providers.py` | `MarketDataProvider` and `YahooProvider` (adjusted closes, in-memory caches) |
 | `service.py`, `main.py` | Use cases and the FastAPI app; `legacy.py` keeps the old response shapes |
 
 The maths modules take DataFrames and return plain values; only `providers.py` talks to Yahoo Finance.
 
+### Risk forecast (model risk-v1)
+
+`models/risk-v1` holds the trained model: three LightGBM boosters in LightGBM's text format (`vol.txt`, `var95.txt`,
+`mdd.txt`, never a pickle) and `meta.json` (features, horizon, calibration, 80% interval ratios, the feature ranges seen
+in training, the walk-forward results). It is trained offline with `train.py --mode final` of the training code, which
+is not in this repository yet, and goes into git and the Docker image as it is; the service only reads it. The service loads it once at start and refuses to start
+if the folder is missing, incomplete or lists other features than `app/forecast/features.py` computes.
+
+For a portfolio it downloads about 11 years of closes of its stocks, `^GSPC` and `^VIX`, builds the daily-rebalanced
+portfolio series on the `^GSPC` calendar and forecasts it directly (in the walk-forward test that beat combining the
+stocks' forecasts), then each stock on its own. Over the next 63 trading days: annualised volatility (the model's median
+turned into a mean, averaged with GARCH(1,1)), one-day VaR 95% (calibrated so 5% of past forecasts were broken) and
+maximum drawdown, each with an 80% interval and the same metric over the last 63 days. `tests/test_forecast.py` checks
+the numbers against the training code's own predictions for the same prices (`tests/data/forecast_expected.json`).
+
+- A stock with less than 252 trading days of prices: 400 `not_enough_history` naming it (the API translates it).
+- A feature outside the range seen in training, or stale quotes: the forecast is made and flagged `outOfDomain`.
+- A model older than `staleAfterDays` (60) from its last training price: `stale: true` and the warning `model_stale`.
+  Retrain and replace the folder (or point `FORECAST_MODEL_DIR` at the new one).
+- LightGBM needs GNU OpenMP: the Dockerfile installs `libgomp1`.
+
 Run it with `uvicorn app.main:app --port 8011` (or `docker compose up --build`). Settings are environment variables,
 all optional (see `app/config.py`): `MATH_API_KEY`, `RISK_FREE_RATE` (annual fraction, default 0, used by the
 optimiser and the metrics alike), `HISTORY_START` (default 2010-07-01), `MIN_HISTORY_DAYS` (default 252),
-`HISTORY_CACHE_SECONDS` (12 h), `QUOTE_CACHE_SECONDS` (5 min), `LOG_LEVEL`, and two for hosting:
+`HISTORY_CACHE_SECONDS` (12 h), `QUOTE_CACHE_SECONDS` (5 min), `FORECAST_MODEL_DIR` (default the bundled
+`models/risk-v1`), `LOG_LEVEL`, and two for hosting:
 `REQUIRE_API_KEY=true` (the service refuses to start unless `MATH_API_KEY` is set to 32 characters or more) and
 `ENABLE_DOCS=false` (no `/docs`, `/redoc` or `/openapi.json`). A start that fails on a bad setting names it in the log.
 
@@ -134,10 +157,12 @@ optimiser and the metrics alike), `HISTORY_START` (default 2010-07-01), `MIN_HIS
 | `POST /v1/growth` | `{positions: [{symbol, quantity, entryDate}]}` → `{points: [{date, value}]}` |
 | `POST /v1/prices` | `{symbols}` → `{prices, missing}`, one Yahoo request for all uncached symbols |
 | `GET /v1/stocks/{symbol}` | name, currency, sector, price |
+| `POST /v1/forecast` | `{symbols, weights, includeAssets?}` → model (version, trained through, age, stale), as-of date, the portfolio's and each stock's volatility, VaR 95% and maximum drawdown (`value`, `low`, `high`, `previous`), `outOfDomain` flags and warnings |
+| `GET /v1/forecast/model` | What the loaded model is: features, horizon, training data, chosen variants, walk-forward evaluation |
 | `POST /api/get-portfolio-opt`, `POST /api/portfolio-growth`, `GET /yfinance/{symbol}`, `GET /yfinance/{symbol}/price` | Legacy shapes; the .NET API no longer calls them, so they can be removed |
 
 Errors return `{"code", "message"}`: 400 `invalid_weights` / `not_enough_history`, 401 `unauthorized`,
-404 `symbol_not_found`, 422 `validation_error` / `optimisation_failed`, 502 `market_data_unavailable`,
+404 `symbol_not_found`, 422 `validation_error` / `optimisation_failed` / `forecast_failed`, 502 `market_data_unavailable`,
 500 `internal_error` (details only in the log). With `MATH_API_KEY` set, every endpoint except `/health` needs
 the `X-API-Key` header; the .NET API sends `MathModule:ApiKey` there, so set both to the same value.
 
@@ -152,7 +177,7 @@ The API's two settings are `MathModule__BaseUrl` and `MathModule__ApiKey`.
 ## Math service client (.NET)
 
 `PortfolioManager.MathModule.Client` is the only code that talks to the math service: `IMathModuleClient`
-(`GetStockAsync`, `GetPricesAsync`, `GetGrowthAsync`, `OptimiseAsync`) over a typed `HttpClient`, with C# records for
+(`GetStockAsync`, `GetPricesAsync`, `GetGrowthAsync`, `OptimiseAsync`, `ForecastAsync`) over a typed `HttpClient`, with C# records for
 the v1 contract (`Contract/MathModuleContract.cs`, mirroring `app/schemas.py`). The BLL services call it; nothing else
 makes HTTP calls. Each attempt has a timeout and a 5xx or a refused connection is retried with exponential backoff
 (`Microsoft.Extensions.Http.Resilience`); 4xx answers and timeouts are not retried.
@@ -186,7 +211,8 @@ are numbers: `api/portfolios/abc` is a 404.
 | `PUT api/positions/{id}` | Change the number of shares `{quantity}` | 200, the position |
 | `DELETE api/positions/{id}` | Remove a position | 204 |
 | `GET api/portfolios/{id}/growth` | Daily value of the portfolio since its first purchase | 200 |
-| `GET api/portfolios/{id}/optimisation` | The portfolio against the max-Sharpe one: nine metrics, each with a `metricKey`, and both sets of weights | 200 |
+| `GET api/portfolios/{id}/optimisation` | The portfolio against the max-Sharpe one: nine metrics, each with a `metricKey`, both sets of weights, and `riskForecast` (the forecast risk of both, or null) | 200 |
+| `GET api/portfolios/{id}/forecast` | Risk over the next three months from the trained model: volatility, VaR 95% and maximum drawdown with 80% intervals and last-three-months values, for the portfolio and each stock; the losses in money; model age and warnings | 200 |
 | `GET api/user/me`, `DELETE api/user/user` | The signed-in user, delete own account | 200 |
 | `GET api/admin/users` (admin) | Totals (users, admins, active in the last 7 days, portfolios) and one row per user: id, name, e-mail, roles, number of portfolios, last active time (UTC; from `User.TokenCreated`, null if never signed in). Profile and counts only; read-only | 200 |
 | `POST api/auth/google` `{credential}`, `POST api/auth/refresh-token`, `POST api/auth/sign-out` | Sign in with Google's ID token (the only way in), refresh the session, sign out | 200 / 204 |
@@ -213,6 +239,10 @@ The routes before this release (`api/portfolio/{id}`, `api/stock/...`, `api/stoc
   optimiser are floating point, because it works in floating point.
 - **Optimisation** builds its weights from the live positions (current value per ticker, tickers added up), so it always
   sees the portfolio as it is now. A price refresh makes one price request and one `SaveChanges`.
+- **Risk forecast** uses the same weights as the optimisation. An empty portfolio is a 400; a stock listed less than a
+  year ago is a 400 in Ukrainian naming it (`RiskForecastMapping.TryExplain`, which reads the math service's text). The
+  optimisation adds the forecast of the current and the optimised weights (`IncludeAssets: false`, one call after the
+  other so the second finds the prices cached) and returns `riskForecast: null` instead of failing when it cannot be made.
 - **Validation** (`[ApiController]` on every controller): quantity above 0, price above 0, ticker 1 to 10 characters of
   letters, digits, `.` and `-`, entry date not in the future (one day of slack for time zones), portfolio name 1 to 100
   characters. A 400 has the same body as every other error: `{"message": "...", "errors": ["..."]}`; the JSON

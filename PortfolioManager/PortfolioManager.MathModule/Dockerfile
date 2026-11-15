@@ -8,11 +8,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# LightGBM's library is linked against the GNU OpenMP runtime, which the slim image does not have.
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Dependencies first, so code changes do not reinstall them.
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY app ./app
+# The risk forecast model (meta.json and three LightGBM text files); FORECAST_MODEL_DIR can point elsewhere.
+COPY models ./models
 
 # Run as an unprivileged user; yfinance keeps its small cache under this user's home.
 RUN useradd --create-home --uid 10001 mathservice

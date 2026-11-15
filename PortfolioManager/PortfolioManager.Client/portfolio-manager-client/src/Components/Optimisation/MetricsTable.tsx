@@ -29,7 +29,7 @@ export interface MetricComparison {
 
 const LABELS: Record<Verdict, string> = { better: 'краще', worse: 'гірше', same: 'без змін' };
 
-function VerdictBadge({ verdict }: { verdict: Verdict }) {
+export function VerdictBadge({ verdict }: { verdict: Verdict }) {
     const { app } = useTheme();
     const color = { better: app.gain, worse: app.loss, same: app.flat }[verdict];
     const Icon = { better: CheckCircleOutline, worse: RemoveCircleOutline, same: TrendingFlat }[verdict];

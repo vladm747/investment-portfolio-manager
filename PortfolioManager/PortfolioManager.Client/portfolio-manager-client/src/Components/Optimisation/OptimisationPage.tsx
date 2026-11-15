@@ -21,7 +21,9 @@ import ErrorState from '../Shared/ErrorState';
 import KpiCard, { KpiGrid } from '../Shared/KpiCard';
 import PageHeader from '../Shared/PageHeader';
 import PortfolioNotFound from '../Shared/PortfolioNotFound';
+import { OptimisationRiskForecastDto } from '../../DTO/RiskForecastDto';
 import MetricsTable, { countVerdicts, MetricComparison } from './MetricsTable';
+import RiskComparison from './RiskComparison';
 import WeightsChart from './WeightsChart';
 
 interface OptimisationResult {
@@ -30,6 +32,8 @@ interface OptimisationResult {
         baseWeights: number[];
         optimizedWeights: Record<string, number>;
     };
+    /** The forecast risk of both portfolios; null when the model could not make it, missing from an older API. */
+    riskForecast?: OptimisationRiskForecastDto | null;
 }
 
 /** The four figures that tell the story at a glance; the table below has all of them. */
@@ -175,6 +179,7 @@ function OptimisationContent({ portfolioId }: { portfolioId: number }) {
 
             <WeightsChart baseWeights={data.weights.baseWeights} optimisedWeights={data.weights.optimizedWeights} />
             <MetricsTable comparisons={data.comparisons} />
+            {data.riskForecast !== undefined && <RiskComparison forecast={data.riskForecast} />}
         </>
     );
 }

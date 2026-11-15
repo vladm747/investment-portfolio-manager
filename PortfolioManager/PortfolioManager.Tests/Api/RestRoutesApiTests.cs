@@ -117,6 +117,7 @@ public class RestRoutesApiTests : ApiTestBase
     [InlineData("POST", "api/portfolios/abc/prices/refresh")]
     [InlineData("GET", "api/portfolios/abc/growth")]
     [InlineData("GET", "api/portfolios/abc/optimisation")]
+    [InlineData("GET", "api/portfolios/abc/forecast")]
     [InlineData("DELETE", "api/positions/abc")]
     public async Task An_id_that_is_not_a_number_is_a_404_not_a_server_error(string method, string url)
     {
@@ -152,6 +153,7 @@ public class SwaggerDevelopmentTests : IClassFixture<DevelopmentApiFactory>
         Assert.Contains("\"/api/positions/{id}\"", document);
         Assert.Contains("\"/api/portfolios/{portfolioId}/growth\"", document);
         Assert.Contains("\"/api/portfolios/{portfolioId}/optimisation\"", document);
+        Assert.Contains("\"/api/portfolios/{portfolioId}/forecast\"", document);
         Assert.DoesNotContain("/api/stock", document);
         Assert.DoesNotContain("/api/statistics", document);
     }
