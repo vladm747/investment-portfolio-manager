@@ -1,0 +1,411 @@
+{
+ "model_version": "risk-v1",
+ "created_utc": "2026-11-15T19:14:53+00:00",
+ "horizon_days": 63,
+ "features": [
+  "ret_21",
+  "ret_63",
+  "ret_126",
+  "ret_252",
+  "mom_12_1",
+  "vol_21",
+  "vol_63",
+  "vol_252",
+  "ewma_vol",
+  "dvol_63",
+  "vol_ratio",
+  "dd_252",
+  "skew_63",
+  "ma50_dist",
+  "ma200_dist",
+  "rsi_14",
+  "beta_252",
+  "rel_ret_252",
+  "rel_vol_63",
+  "mkt_ret_63",
+  "mkt_vol_21",
+  "mkt_vol_63",
+  "mkt_dd_252",
+  "vix"
+ ],
+ "use_vix": true,
+ "vol": {
+  "file": "vol.txt",
+  "objective": "log",
+  "output": "ln(vol)",
+  "bias_s2": 0.06221675058622975,
+  "garch_blend": true
+ },
+ "var95": {
+  "file": "var95.txt",
+  "method": "target",
+  "output": "VaR (positive daily loss)",
+  "k": 1.075656901153077
+ },
+ "mdd": {
+  "file": "mdd.txt",
+  "output": "max drawdown over the next H days (positive fraction)"
+ },
+ "intervals_80": {
+  "vol": [
+   0.7204678824800369,
+   1.3212466003141434
+  ],
+  "var95": [
+   0.6045876022709961,
+   1.2735627817734647
+  ],
+  "mdd": [
+   0.4697683656031957,
+   1.7856158473639223
+  ]
+ },
+ "how_to_forecast": "features of the last day -> vol = exp(pred) * exp(bias_s2/2) (log) or pred (gamma); if garch_blend, average with GARCH(1,1) on 10 years; var95 = max(pred, 0) * k (target) or -pred (quantile); mdd = max(pred, 0); interval = forecast * [lo_ratio, hi_ratio]",
+ "training": {
+  "first_sample": "1990-12-31",
+  "last_sample": "2026-08-17",
+  "last_price_date": "2026-11-13",
+  "rows": 528473,
+  "stocks": [
+   "AAPL",
+   "AMD",
+   "MSFT",
+   "IBM",
+   "INTC",
+   "TXN",
+   "ORCL",
+   "CSCO",
+   "QCOM",
+   "AMAT",
+   "ADBE",
+   "BAC",
+   "JPM",
+   "C",
+   "WFC",
+   "AIG",
+   "AXP",
+   "USB",
+   "PNC",
+   "SCHW",
+   "TRV",
+   "JNJ",
+   "LLY",
+   "MRK",
+   "PFE",
+   "UNH",
+   "ABT",
+   "MDT",
+   "BMY",
+   "AMGN",
+   "TMO",
+   "KO",
+   "PEP",
+   "PG",
+   "WMT",
+   "CL",
+   "MO",
+   "GIS",
+   "KMB",
+   "HSY",
+   "BBY",
+   "HD",
+   "MCD",
+   "F",
+   "NKE",
+   "LOW",
+   "TGT",
+   "SBUX",
+   "TJX",
+   "ROST",
+   "CVX",
+   "XOM",
+   "RRC",
+   "SLB",
+   "COP",
+   "OXY",
+   "HAL",
+   "EOG",
+   "DVN",
+   "GE",
+   "MMM",
+   "BA",
+   "CAT",
+   "HON",
+   "UNP",
+   "EMR",
+   "DE",
+   "GD",
+   "LMT",
+   "DUK",
+   "SO",
+   "NEE",
+   "AEP",
+   "ED",
+   "XEL",
+   "PEG",
+   "ETR",
+   "D",
+   "APD",
+   "SHW",
+   "NEM",
+   "ECL",
+   "PPG",
+   "IP",
+   "NUE",
+   "VMC",
+   "T",
+   "VZ",
+   "DIS",
+   "CMCSA",
+   "OMC",
+   "NYT",
+   "SPG",
+   "PSA",
+   "UDR",
+   "WELL",
+   "FRT",
+   "KIM",
+   "VNO",
+   "HST"
+  ],
+  "train_portfolios": 200,
+  "sample_step": 5
+ },
+ "feature_domain": {
+  "ret_21": {
+   "min": -0.9041321873664856,
+   "p01": -0.1840813159942627,
+   "p99": 0.21083366870880127,
+   "max": 2.4497733116149902
+  },
+  "ret_63": {
+   "min": -0.9398968815803528,
+   "p01": -0.28127139806747437,
+   "p99": 0.39505115151405334,
+   "max": 3.885714530944824
+  },
+  "ret_126": {
+   "min": -0.9802207946777344,
+   "p01": -0.3608316481113434,
+   "p99": 0.6304196119308472,
+   "max": 4.3970513343811035
+  },
+  "ret_252": {
+   "min": -0.9908732175827026,
+   "p01": -0.4215853214263916,
+   "p99": 1.0647358894348145,
+   "max": 26.194217681884766
+  },
+  "mom_12_1": {
+   "min": -0.9906811118125916,
+   "p01": -0.4123724400997162,
+   "p99": 0.9828445315361023,
+   "max": 19.418140411376953
+  },
+  "vol_21": {
+   "min": 0.03319774568080902,
+   "p01": 0.07197177410125732,
+   "p99": 0.8148971199989319,
+   "max": 4.171018600463867
+  },
+  "vol_63": {
+   "min": 0.04767712205648422,
+   "p01": 0.0854334607720375,
+   "p99": 0.7555100917816162,
+   "max": 2.8751206398010254
+  },
+  "vol_252": {
+   "min": 0.061559829860925674,
+   "p01": 0.10095100849866867,
+   "p99": 0.6802940964698792,
+   "max": 2.1451199054718018
+  },
+  "ewma_vol": {
+   "min": 0.04550117999315262,
+   "p01": 0.08151298016309738,
+   "p99": 0.7834904789924622,
+   "max": 3.7195003032684326
+  },
+  "dvol_63": {
+   "min": 0.017160916700959206,
+   "p01": 0.04947816953063011,
+   "p99": 0.529555082321167,
+   "max": 2.2579269409179688
+  },
+  "vol_ratio": {
+   "min": 0.10844097286462784,
+   "p01": 0.3951759934425354,
+   "p99": 2.112523317337036,
+   "max": 3.3487157821655273
+  },
+  "dd_252": {
+   "min": -0.9915077090263367,
+   "p01": -0.4849940538406372,
+   "p99": 0.0,
+   "max": 0.0
+  },
+  "skew_63": {
+   "min": -7.0184197425842285,
+   "p01": -2.047128915786743,
+   "p99": 2.1047792434692383,
+   "max": 6.653901100158691
+  },
+  "ma50_dist": {
+   "min": -0.9059196710586548,
+   "p01": -0.16925720870494843,
+   "p99": 0.17014744877815247,
+   "max": 1.0436224937438965
+  },
+  "ma200_dist": {
+   "min": -0.9649375677108765,
+   "p01": -0.2894118130207062,
+   "p99": 0.3841063678264618,
+   "max": 2.626549243927002
+  },
+  "rsi_14": {
+   "min": 0.0,
+   "p01": 17.34796714782715,
+   "p99": 88.72296142578125,
+   "max": 100.0
+  },
+  "beta_252": {
+   "min": -0.7934483289718628,
+   "p01": 0.13211029767990112,
+   "p99": 1.8774958848953247,
+   "max": 3.30523681640625
+  },
+  "rel_ret_252": {
+   "min": -1.1168981790542603,
+   "p01": -0.43632155656814575,
+   "p99": 0.8878056406974792,
+   "max": 25.99895668029785
+  },
+  "rel_vol_63": {
+   "min": 0.4476603865623474,
+   "p01": 0.7202160954475403,
+   "p99": 4.535330295562744,
+   "max": 14.123252868652344
+  },
+  "mkt_ret_63": {
+   "min": -0.3687348961830139,
+   "p01": -0.2015562206506729,
+   "p99": 0.19508342444896698,
+   "max": 0.3935193717479706
+  },
+  "mkt_vol_21": {
+   "min": 0.03478202968835831,
+   "p01": 0.05444083362817764,
+   "p99": 0.5438740849494934,
+   "max": 0.9512587189674377
+  },
+  "mkt_vol_63": {
+   "min": 0.05071249231696129,
+   "p01": 0.06488116830587387,
+   "p99": 0.5967165231704712,
+   "max": 0.7252590656280518
+  },
+  "mkt_dd_252": {
+   "min": -0.5003119111061096,
+   "p01": -0.4122442305088043,
+   "p99": 0.0,
+   "max": 0.0
+  },
+  "vix": {
+   "min": 0.09140000492334366,
+   "p01": 0.10029999911785126,
+   "p99": 0.475600004196167,
+   "max": 0.7547000050544739
+  }
+ },
+ "lightgbm_params": {
+  "n_estimators": 300,
+  "learning_rate": 0.03,
+  "num_leaves": 15,
+  "min_child_samples": 200,
+  "subsample": 0.8,
+  "subsample_freq": 1,
+  "colsample_bytree": 0.8,
+  "reg_lambda": 1.0,
+  "random_state": 7,
+  "verbose": -1
+ },
+ "chosen_variants": {
+  "vol_objective": "log",
+  "vix": true,
+  "garch_blend": true,
+  "var_method": "target",
+  "validation_period": [
+   "1996-01-01",
+   "1999-12-31"
+  ],
+  "variants_tried": 16,
+  "rule": "volatility: lowest QLIKE over objective x VIX x GARCH blend; VaR: breach rate closest to 5% (then lower MAE) with the same VIX choice"
+ },
+ "data_fingerprint": "8f15ac8f575685c2",
+ "versions": {
+  "python": "3.13.16",
+  "lightgbm": "4.6.0",
+  "numpy": "2.4.6",
+  "pandas": "2.2.3",
+  "scikit_learn": "1.6.1"
+ },
+ "stale_after_days": 60,
+ "walk_forward": {
+  "test_start": "2000-01-01",
+  "criteria": {
+   "vol_beats_ewma_qlike": true,
+   "vol_not_worse_than_garch": true,
+   "var_coverage": true,
+   "mdd_beats_hist": true,
+   "intervals_80": true,
+   "portfolio_method": true
+  },
+  "var_breach_rate": 0.05071564899791163,
+  "dm": {
+   "vol_vs_ewma_qlike": {
+    "relative": -0.3386276984506127,
+    "p_value": 0.008198157182829124
+   },
+   "vol_vs_system_qlike": {
+    "relative": -0.507541765824813,
+    "p_value": 6.3938252161444e-05
+   },
+   "vol_vs_system_ae": {
+    "relative": -0.4322982067640665,
+    "p_value": 0.0
+   },
+   "vol_vs_252_qlike": {
+    "relative": -0.2956705741786447,
+    "p_value": 6.200084868157596e-05
+   },
+   "var_vs_hist252_ae": {
+    "relative": -0.08715797340401334,
+    "p_value": 0.037348946690794804
+   },
+   "var_vs_system_ae": {
+    "relative": -0.3795495588067316,
+    "p_value": 0.0
+   },
+   "mdd_vs_hist_ae": {
+    "relative": -0.2070265316131813,
+    "p_value": 0.0
+   },
+   "vol_vs_garch_qlike": {
+    "relative": -0.1199211662923869,
+    "p_value": 1.6568169058928106e-10
+   },
+   "portfolio_vol_vs_ewma_qlike": {
+    "relative": -0.413755318283926,
+    "p_value": 0.08574858410047437
+   },
+   "portfolio_vol_vs_system_qlike": {
+    "relative": -0.4112689297190798,
+    "p_value": 0.023417563832597965
+   },
+   "portfolio_cov_vs_direct_qlike": {
+    "relative": 0.15316757692804497,
+    "p_value": 0.06892385571046034
+   }
+  }
+ }
+}
