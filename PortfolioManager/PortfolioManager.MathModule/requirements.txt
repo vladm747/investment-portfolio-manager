@@ -15,3 +15,6 @@ pyportfolioopt==1.6.0
 # The model files are LightGBM's text format, which any 4.x reads. arch fits the GARCH(1,1) the model averages with.
 lightgbm==4.7.0
 arch==9.0.0
+# skbase (a dependency of pyportfolioopt) imports packaging without declaring it, so without this pin the service
+# does not start from this file alone. pytest brings packaging in, which is why the tests did not show it.
+packaging==26.3

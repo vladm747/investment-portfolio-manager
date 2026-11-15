@@ -72,6 +72,30 @@ The API applies EF Core migrations at startup to whichever database the connecti
 restores the columns and recalculates them. The API and the client changed their routes in the same release
 (see [API routes](#api-routes)), so deploy them together.
 
+## Run the backend in Docker
+
+`docker-compose.yml` (next to the solution) starts SQL Server 2022 (`db`), the math service (`math`) and the API (`api`).
+Nothing in it touches Azure: the database is the container, and user-secrets are not read (the API runs as
+Production, so every setting comes from the compose file and `.env`).
+
+```bash
+cp .env.example .env     # then fill in the empty values; git ignores .env
+docker compose up --build
+```
+
+- The API listens on `http://localhost:5050` (`API_PORT`), the address the client's `.env.local` already uses, so
+  `npm run dev` keeps working unchanged. Stop a host-run API first.
+- The client is not in the compose file. Google sign-in works only from the origins the OAuth client allows
+  (`http://localhost:3000`, `http://localhost` and the deployed client), and the page keeps loading from
+  `npm run dev` on the first of them. The API only has to let that origin through CORS (`CLIENT_ORIGIN`, default
+  `http://localhost:3000`; Production does not add it by itself).
+- The math service has no published port: only the API reaches it, with `MATH_API_KEY` as the second lock. Anything
+  that needs prices still reaches Yahoo Finance (caches: see [Math service](#math-service)).
+- Data lives in the `sqldata` volume. `docker compose down` keeps it, `docker compose down -v` erases it. That is also
+  how to change `MSSQL_SA_PASSWORD`, which SQL Server reads only when it first creates the volume.
+- To look at the data: `127.0.0.1,14330`, login `sa` (`SQL_PORT`).
+- `PortfolioManager.MathModule/docker-compose.yml` still builds the math service alone.
+
 ## Checks
 
 ```bash
