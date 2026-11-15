@@ -56,4 +56,7 @@ The build output is static files in `dist/` (it used to be `build/`).
   (`RequireAuth`, `RequireRole`, `GuestOnly`).
 - `src/Services`: the shared axios instance (`http.ts`, adds the token and refreshes it on 401) and one file per API area.
 - `src/Hooks`, `src/Domain`: data loading and portfolio calculations.
-- `src/Components`: pages and shared components.
+- `src/Components`: pages and shared components. `Components/Risk` is the risk forecast: the «Ризик на 3 місяці» card on
+  the portfolio page, the page `/portfolios/:id/risk` (the portfolio and each stock on a shared axis, with a table of
+  every figure) and the pieces the optimisation page uses to compare the forecast risk of the current and optimised
+  weights. Its rules and Ukrainian texts (metric names, feature names, warnings) are in `src/Domain/risk.ts`.

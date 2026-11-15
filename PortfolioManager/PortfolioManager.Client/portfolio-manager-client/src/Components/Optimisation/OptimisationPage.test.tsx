@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import OptimisationPage from './OptimisationPage';
 import { fakeApi } from '../../testing/fakeApi';
 import { renderWithProviders } from '../../testing/renderWithProviders';
+import { portfolioFigures } from '../../testing/riskForecast';
 
 const plain = (text: string | null) => (text ?? '').replace(/[  ]/g, ' ');
 
@@ -93,6 +94,39 @@ test('weights are listed per ticker in percent', async () => {
     expect(plain(within(table).getByText('AAPL').closest('tr')!.textContent)).toContain('60,0%');
     expect(plain(within(table).getByText('AAPL').closest('tr')!.textContent)).toContain('90,0%');
     expect(plain(within(table).getByText('MSFT').closest('tr')!.textContent)).toContain('+30,0 п.п.'.replace('+30', '−30'));
+});
+
+const riskForecast = {
+    model: { version: 'risk-v1', trainedThrough: '2026-11-13', horizonDays: 63, intervalLevel: 0.8, ageDays: 2, staleAfterDays: 60, stale: false },
+    asOf: '2026-11-15',
+    base: portfolioFigures,
+    optimised: {
+        ...portfolioFigures,
+        volatility: { value: 0.165, low: 0.12, high: 0.22, previous: 0.15 },
+        maxDrawdown: { value: 0.15, low: 0.07, high: 0.27, previous: 0.06 },
+    },
+};
+
+test('the forecast risk of both portfolios for the next three months, with a verdict for each metric', async () => {
+    serve(() => ({ status: 200, data: { ...result, riskForecast } }));
+    renderPage();
+
+    const table = await screen.findByRole('table', { name: 'Прогноз ризику' });
+    const row = (name: string) => within(table).getByText(name).closest('tr') as HTMLElement;
+
+    expect(plain(row('Волатильність (річна)').textContent)).toContain('19,1%13,7–25,2%16,5%12,0–22,0%краще');
+    expect(within(row('VaR 95% за день')).getByText('без змін')).toBeInTheDocument();
+    expect(within(row('Максимальна просадка')).getByText('гірше')).toBeInTheDocument();
+    expect(plain(screen.getByText(/Що модель машинного навчання risk-v1 очікує/).textContent)).toContain('15.11.2026');
+});
+
+test('without a forecast the optimisation is shown with a note', async () => {
+    serve(() => ({ status: 200, data: { ...result, riskForecast: null } }));
+    renderPage();
+
+    expect(await screen.findByText(/Прогноз ризику на 3 місяці для цих ваг зараз недоступний/)).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: 'Порівняння показників' })).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: 'Прогноз ризику' })).not.toBeInTheDocument();
 });
 
 test('a failed calculation can be tried again', async () => {
