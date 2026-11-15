@@ -621,3 +621,6 @@ FodyWeavers.xsd
 
 # End of https://www.toptal.com/developers/gitignore/api/rider,webstorm,web,visualstudio,visualstudiocode,dotnetcore,react
 PortfolioManager/PortfolioManager.MathModule/update_quantstats.py
+
+# docker-compose.yml values (secrets); .env.example is the committed template
+/PortfolioManager/.env

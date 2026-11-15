@@ -1,0 +1,4 @@
+# Trained model files are read byte for byte (LightGBM text dumps, and meta.json describes them).
+# `-text` switches off every line-ending conversion, so a Windows checkout with core.autocrlf=true
+# keeps them LF. With CRLF, LightGBM cannot parse the dumps and the math service crashes at startup.
+* -text

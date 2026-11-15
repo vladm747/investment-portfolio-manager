@@ -1,0 +1,74 @@
+# The whole backend for local work: SQL Server, the Python math service and the .NET API.
+#
+#   copy .env.example .env      (then fill in the values; .env is ignored by git)
+#   docker compose up --build
+#
+# The client is not part of this file: it keeps running from `npm run dev` on http://localhost:3000, one of the origins
+# the Google OAuth client allows, and talks to the API on http://localhost:5050/api/ (its .env.local already says so).
+# Stop a host-run API (`dotnet run`, port 5050) first, or set API_PORT to another port.
+#
+# Nothing here touches Azure: the database is the container below, and user-secrets are not read (the API runs as
+# Production, so every setting comes from this file and .env).
+name: portfolio-manager
+
+services:
+  db:
+    # Pinned to a cumulative update on purpose: `latest` moves under you.
+    image: mcr.microsoft.com/mssql/server:2022-CU28-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      # Applied only when the data volume is first created; changing it later needs `docker compose down -v`.
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env (8+ characters, upper and lower case, digit, no ; or $)}
+    ports:
+      # Loopback only, for SSMS or Azure Data Studio: Server=127.0.0.1,14330;User Id=sa. Port 1433 is often taken.
+      - "127.0.0.1:${SQL_PORT:-14330}:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  math:
+    build: ./PortfolioManager.MathModule
+    image: portfolio-manager-math:local
+    environment:
+      # With REQUIRE_API_KEY the service refuses to start unless the key has 32 characters or more.
+      MATH_API_KEY: ${MATH_API_KEY:?Set MATH_API_KEY in .env (32+ characters)}
+      REQUIRE_API_KEY: "true"
+      ENABLE_DOCS: "false"
+      RISK_FREE_RATE: ${RISK_FREE_RATE:-0}
+    # No `ports:` on purpose. Only the API, on the compose network, can reach it (as on Azure), and the key is the
+    # second lock. To call it by hand add "127.0.0.1:8011:8011" here. Every call that needs prices reaches Yahoo Finance.
+    # The image has its own HEALTHCHECK (/health, which does not call Yahoo).
+
+  api:
+    build:
+      context: .
+      dockerfile: PortfolioManager.API/Dockerfile
+    image: portfolio-manager-api:local
+    depends_on:
+      db:
+        condition: service_healthy
+      math:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_PORT:-5050}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # EF Core creates the database and applies the migrations at startup.
+      ConnectionStrings__PortfolioManagerDb: "Server=db;Database=PortfolioManager;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+      MathModule__BaseUrl: http://math:8011
+      MathModule__ApiKey: ${MATH_API_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-portfolio-manager-local}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (32+ characters)}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
+      # Empty means nobody becomes an admin.
+      Auth__AdminEmails__0: ${ADMIN_EMAIL:-}
+      # Production lets in only the listed origins; Development would add http://localhost:3000 by itself.
+      Cors__Origins__0: ${CLIENT_ORIGIN:-http://localhost:3000}
+
+volumes:
+  sqldata:
