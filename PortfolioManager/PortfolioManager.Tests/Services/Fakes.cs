@@ -13,13 +13,19 @@ public sealed class FakeMathModule : IMathModuleClient
     public Func<GrowthRequest, GrowthResponse> Growth { get; set; } = _ => throw new InvalidOperationException("GetGrowth not set up");
     public Func<OptimisationRequest, OptimisationResponse> Optimisation { get; set; } = _ => throw new InvalidOperationException("Optimise not set up");
 
+    /// <summary>Unless a test sets it, the forecast is unavailable, so the optimisation tests get no risk forecast.</summary>
+    public Func<ForecastRequest, ForecastResponse> Forecast { get; set; } = NoForecast;
+
     public List<string> StockCalls { get; } = new();
     public List<IReadOnlyCollection<string>> PriceCalls { get; } = new();
     public List<GrowthRequest> GrowthCalls { get; } = new();
     public List<OptimisationRequest> OptimisationCalls { get; } = new();
+    public List<ForecastRequest> ForecastCalls { get; } = new();
 
     /// <summary>Every call to the math module, of any kind.</summary>
-    public int Calls => StockCalls.Count + PriceCalls.Count + GrowthCalls.Count + OptimisationCalls.Count;
+    public int Calls => StockCalls.Count + PriceCalls.Count + GrowthCalls.Count + OptimisationCalls.Count + ForecastCalls.Count;
+
+    private static ForecastResponse NoForecast(ForecastRequest request) => throw new MarketDataUnavailableException();
 
     /// <summary>Forgets the recorded calls and the answers, for a fake that lives longer than one test.</summary>
     public void Reset()
@@ -28,10 +34,12 @@ public sealed class FakeMathModule : IMathModuleClient
         Prices = _ => throw new InvalidOperationException("GetPrices not set up");
         Growth = _ => throw new InvalidOperationException("GetGrowth not set up");
         Optimisation = _ => throw new InvalidOperationException("Optimise not set up");
+        Forecast = NoForecast;
         StockCalls.Clear();
         PriceCalls.Clear();
         GrowthCalls.Clear();
         OptimisationCalls.Clear();
+        ForecastCalls.Clear();
     }
 
     public Task<StockResponse> GetStockAsync(string symbol, CancellationToken cancellationToken = default)
@@ -56,6 +64,12 @@ public sealed class FakeMathModule : IMathModuleClient
     {
         OptimisationCalls.Add(request);
         return Task.FromResult(Optimisation(request));
+    }
+
+    public Task<ForecastResponse> ForecastAsync(ForecastRequest request, CancellationToken cancellationToken = default)
+    {
+        ForecastCalls.Add(request);
+        return Task.FromResult(Forecast(request));
     }
 }
 
@@ -156,4 +170,25 @@ public sealed class FakeStockRepository(FakePortfolioRepository portfolios) : IS
 
     public Task<int> DeleteAsync(Stock entity, CancellationToken cancellationToken = default) =>
         Task.FromResult(Stocks.Remove(entity) ? 1 : 0);
+}
+
+/// <summary>Risk forecasts in the shape the math service sends them, with numbers that are easy to check.</summary>
+public static class SampleForecast
+{
+    public static readonly ForecastModelInfo Model = new("risk-v1", new DateOnly(2026, 11, 13), 63, 0.8, 2, 60, false);
+
+    public static readonly DateOnly AsOf = new(2026, 11, 15);
+
+    public static MetricForecast Metric(double value) => new(value, value / 2, value * 2, value * 0.75);
+
+    public static RiskForecast Risk(double volatility = 0.2, double valueAtRisk = 0.025, double maxDrawdown = 0.125) =>
+        new(Metric(volatility), Metric(valueAtRisk), Metric(maxDrawdown), false, Array.Empty<string>(), false);
+
+    /// <summary>The same risk for every stock; the portfolio's volatility can be told apart from the stocks'.</summary>
+    public static ForecastResponse For(ForecastRequest request, double portfolioVolatility = 0.2) =>
+        new(Model, AsOf, 899, Risk(portfolioVolatility),
+            request.IncludeAssets
+                ? request.Symbols.Zip(request.Weights, (symbol, weight) => new AssetForecast(symbol, weight, Risk(0.3))).ToList()
+                : Array.Empty<AssetForecast>(),
+            Array.Empty<string>());
 }

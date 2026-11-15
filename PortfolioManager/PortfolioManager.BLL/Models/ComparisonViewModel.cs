@@ -22,6 +22,13 @@ public class ComparisonResult
 {
     public List<ComparisonViewModel> Comparisons { get; set; } = new List<ComparisonViewModel>();
     public Weights Weights { get; set; } = new();
+
+    /// <summary>
+    /// The risk the trained model expects for the current and the optimised portfolio over the next three months.
+    /// null when the forecast could not be made (a stock listed less than a year ago, the service unavailable):
+    /// the optimisation is shown without it.
+    /// </summary>
+    public OptimisationRiskForecast? RiskForecast { get; set; }
 }
 
 public class Weights

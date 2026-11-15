@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using PortfolioManager.BLL.Exceptions;
 using PortfolioManager.BLL.Interfaces;
+using PortfolioManager.BLL.Mapping;
 using PortfolioManager.BLL.Models;
 using PortfolioManager.BLL.Valuation;
 using PortfolioManager.DAL.Entities;
@@ -77,7 +78,76 @@ public class PortfolioStatisticService: IPortfolioStatisticService
                 .ToArray()
         };
 
+        comparison.RiskForecast = await TryForecastOptimisationAsync(portfolioId, symbols, baseWeights,
+            result.Weights.Optimised, cancellationToken);
+
         return comparison;
+    }
+
+    public async Task<PortfolioRiskForecast> GetForecastAsync(string userId, int portfolioId,
+        CancellationToken cancellationToken = default)
+    {
+        var portfolio = await GetOwnedAsync(userId, portfolioId, cancellationToken);
+
+        // The same weights as the optimisation: what each position is worth now.
+        var valuations = portfolio.Stocks!.Select(stock => (stock.Symbol, Valuation: stock.Valuation())).ToList();
+        var (symbols, weights) = PortfolioWeights.FromValues(
+            valuations.Select(position => (position.Symbol, (double)position.Valuation.CurrentValue)));
+
+        if (symbols.Count == 0)
+            throw new ValidationFailedException(new[] { "У портфелі немає позицій для прогнозу ризику." });
+
+        _logger.LogInformation("Forecasting the risk of portfolio {PortfolioId} with {Count} tickers", portfolioId,
+            symbols.Count);
+
+        ForecastResponse forecast;
+        try
+        {
+            forecast = await _mathModule.ForecastAsync(new ForecastRequest(symbols, weights), cancellationToken);
+        }
+        catch (MathModuleRejectedException rejection) when (RiskForecastMapping.TryExplain(rejection, out var message))
+        {
+            throw new ValidationFailedException(new[] { message });
+        }
+
+        var value = PositionValuation.Sum(valuations.Select(position => position.Valuation)).CurrentValue;
+        return forecast.ToModel(value);
+    }
+
+    /// <summary>
+    /// The forecast risk of the current and the optimised weights, or null when it cannot be made: the optimisation is
+    /// worth showing without it.
+    /// </summary>
+    private async Task<OptimisationRiskForecast?> TryForecastOptimisationAsync(int portfolioId,
+        IReadOnlyList<string> symbols, IReadOnlyList<double> weights, IReadOnlyDictionary<string, double> optimised,
+        CancellationToken cancellationToken)
+    {
+        // The optimiser can leave a stock at 0 (or a rounding error below it); the forecast needs only the rest.
+        var (optimisedSymbols, optimisedWeights) = PortfolioWeights.FromValues(
+            optimised.Select(weight => (weight.Key, weight.Value)));
+        if (optimisedSymbols.Count == 0)
+            return null;
+
+        try
+        {
+            // One after the other: the first call downloads what the service has not cached (the index and VIX),
+            // the second finds it there.
+            var current = await _mathModule.ForecastAsync(
+                new ForecastRequest(symbols, weights, IncludeAssets: false), cancellationToken);
+            var best = await _mathModule.ForecastAsync(
+                new ForecastRequest(optimisedSymbols, optimisedWeights, IncludeAssets: false), cancellationToken);
+
+            return new OptimisationRiskForecast(current.Model.ToModel(), current.AsOf, current.Portfolio.ToFigures(),
+                best.Portfolio.ToFigures());
+        }
+        catch (Exception e) when (e is MathModuleRejectedException or MarketDataUnavailableException
+                                      or SymbolNotFoundException)
+        {
+            // The client has logged the details of the failure already.
+            _logger.LogWarning("The optimisation of portfolio {PortfolioId} is returned without a risk forecast: {Reason}",
+                portfolioId, e.Message);
+            return null;
+        }
     }
 
     private async Task<Portfolio> GetOwnedAsync(string userId, int portfolioId, CancellationToken cancellationToken)

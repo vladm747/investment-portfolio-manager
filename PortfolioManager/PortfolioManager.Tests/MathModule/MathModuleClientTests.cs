@@ -101,6 +101,92 @@ public class MathModuleClientTests
         Assert.Equal(-0.3, result.Metrics.Base.MaxDrawdown);
     }
 
+    // A real answer of the math service: POST /v1/forecast on tests/data/forecast_prices.csv of the MathModule tests,
+    // with ten days of BBB's prices removed, so BBB gets no forecast of its own.
+    private const string ForecastAnswer = """
+        {"model": {"version": "risk-v1", "trainedThrough": "2026-11-13", "horizonDays": 63, "intervalLevel": 0.8,
+                   "ageDays": 0, "staleAfterDays": 60, "stale": false},
+         "asOf": "2026-11-13", "tradingDays": 899,
+         "portfolio": {"volatility": {"value": 0.19072639451457588, "low": 0.13741224158896861, "high": 0.25199660034255744, "previous": 0.171001216127174},
+                       "valueAtRisk95": {"value": 0.020012388234976208, "low": 0.012099241818700555, "high": 0.025487032830466858, "previous": 0.01728680792648556},
+                       "maxDrawdown": {"value": 0.1325217168273489, "low": 0.062254510320913205, "high": 0.23663287768678837, "previous": 0.05902844316068523},
+                       "outOfDomain": false, "outOfDomainFeatures": [], "staleQuotes": false},
+         "assets": [{"symbol": "AAA", "weight": 0.6,
+                     "forecast": {"volatility": {"value": 0.2628374499623479, "low": 0.18936594101082546, "high": 0.347273087197991, "previous": 0.23752119495295557},
+                                  "valueAtRisk95": {"value": 0.0265174671534612, "low": 0.016032131884611004, "high": 0.03377165923354852, "previous": 0.02068975046045851},
+                                  "maxDrawdown": {"value": 0.15501054728138236, "low": 0.07281905144763189, "high": 0.2767892897341909, "previous": 0.11363571123422656},
+                                  "outOfDomain": false, "outOfDomainFeatures": [], "staleQuotes": false}},
+                    {"symbol": "BBB", "weight": 0.4, "forecast": null}],
+         "warnings": ["assets_without_forecast"]}
+        """;
+
+    [Fact]
+    public async Task Forecast_posts_the_weights_and_reads_the_services_answer()
+    {
+        var handler = new StubHandler().Json(HttpStatusCode.OK, ForecastAnswer);
+
+        var forecast = await ClientFor(handler).ForecastAsync(new ForecastRequest(new[] { "AAA", "BBB" }, new[] { 0.6, 0.4 }));
+
+        Assert.Equal(HttpMethod.Post, handler.Single.Method);
+        Assert.Equal("/v1/forecast", handler.Single.Uri.AbsolutePath);
+        AssertJsonEqual("""{"symbols":["AAA","BBB"],"weights":[0.6,0.4],"includeAssets":true}""", handler.Single.Body);
+        Assert.Equal(new ForecastModelInfo("risk-v1", new DateOnly(2026, 11, 13), 63, 0.8, 0, 60, false), forecast.Model);
+        Assert.Equal(new DateOnly(2026, 11, 13), forecast.AsOf);
+        Assert.Equal(899, forecast.TradingDays);
+        Assert.Equal(
+            new MetricForecast(0.020012388234976208, 0.012099241818700555, 0.025487032830466858, 0.01728680792648556),
+            forecast.Portfolio.ValueAtRisk95);
+        Assert.Equal(0.1325217168273489, forecast.Portfolio.MaxDrawdown.Value);
+        Assert.False(forecast.Portfolio.OutOfDomain);
+        Assert.Empty(forecast.Portfolio.OutOfDomainFeatures);
+        Assert.Equal(new[] { ("AAA", 0.6), ("BBB", 0.4) }, forecast.Assets.Select(asset => (asset.Symbol, asset.Weight)));
+        Assert.Equal(0.2628374499623479, forecast.Assets[0].Forecast!.Volatility.Value);
+        Assert.Null(forecast.Assets[1].Forecast);
+        Assert.Equal(new[] { "assets_without_forecast" }, forecast.Warnings);
+    }
+
+    [Fact]
+    public async Task Forecast_of_the_portfolio_alone_says_so_and_reads_unusual_stocks_and_missing_figures()
+    {
+        const string answer = """
+            {"model": {"version": "risk-v1", "trainedThrough": "2026-11-13", "horizonDays": 63, "intervalLevel": 0.8,
+                       "ageDays": 95, "staleAfterDays": 60, "stale": true},
+             "asOf": "2027-02-16", "tradingDays": 300,
+             "portfolio": {"volatility": {"value": 0.9, "low": 0.6, "high": 1.2, "previous": null},
+                           "valueAtRisk95": {"value": 0.08, "low": null, "high": null, "previous": 0.07},
+                           "maxDrawdown": {"value": 0.5, "low": 0.2, "high": 0.9, "previous": 0.4},
+                           "outOfDomain": true, "outOfDomainFeatures": ["vol_252", "rel_vol_63"], "staleQuotes": false},
+             "assets": [], "warnings": ["model_stale", "portfolio_out_of_domain"]}
+            """;
+        var handler = new StubHandler().Json(HttpStatusCode.OK, answer);
+
+        var forecast = await ClientFor(handler).ForecastAsync(
+            new ForecastRequest(new[] { "GME" }, new[] { 1.0 }, IncludeAssets: false));
+
+        AssertJsonEqual("""{"symbols":["GME"],"weights":[1],"includeAssets":false}""", handler.Single.Body);
+        Assert.True(forecast.Model.Stale);
+        Assert.Equal(95, forecast.Model.AgeDays);
+        Assert.True(forecast.Portfolio.OutOfDomain);
+        Assert.Equal(new[] { "vol_252", "rel_vol_63" }, forecast.Portfolio.OutOfDomainFeatures);
+        Assert.Null(forecast.Portfolio.Volatility.Previous);
+        Assert.Null(forecast.Portfolio.ValueAtRisk95.Low);
+        Assert.Empty(forecast.Assets);
+        Assert.Equal(new[] { "model_stale", "portfolio_out_of_domain" }, forecast.Warnings);
+    }
+
+    [Fact]
+    public async Task Forecast_of_a_recently_listed_stock_is_a_refusal_with_the_services_text()
+    {
+        const string text = "Not enough price history: CCC has prices only from 2026-06-29, which gives 99 trading days; the forecast needs at least 252.";
+        var handler = new StubHandler().Error(HttpStatusCode.BadRequest, "not_enough_history", text);
+
+        var error = await Assert.ThrowsAsync<MathModuleRejectedException>(() =>
+            ClientFor(handler).ForecastAsync(new ForecastRequest(new[] { "AAA", "CCC" }, new[] { 0.6, 0.4 })));
+
+        Assert.Equal("not_enough_history", error.Code);
+        Assert.Equal(text, error.Message);
+    }
+
     // ---- failures ---------------------------------------------------------------------------------------------
 
     [Fact]

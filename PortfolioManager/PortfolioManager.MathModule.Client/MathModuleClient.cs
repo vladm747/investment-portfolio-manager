@@ -41,6 +41,9 @@ public sealed class MathModuleClient : IMathModuleClient
         CancellationToken cancellationToken = default) =>
         SendAsync<OptimisationResponse>(HttpMethod.Post, "v1/optimisation", request, cancellationToken);
 
+    public Task<ForecastResponse> ForecastAsync(ForecastRequest request, CancellationToken cancellationToken = default) =>
+        SendAsync<ForecastResponse>(HttpMethod.Post, "v1/forecast", request, cancellationToken);
+
     private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
     {
         var operation = $"{method} {path}";
